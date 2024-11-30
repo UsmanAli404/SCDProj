@@ -17,18 +17,18 @@
     <RowConstraints minHeight="10.0" percentHeight="70.0" prefHeight="30.0" vgrow="SOMETIMES" />
   </rowConstraints>
    <children>
-      <VBox alignment="CENTER" prefHeight="200.0" prefWidth="600.0" spacing="20.0" GridPane.rowIndex="1">
+      <VBox alignment="CENTER" prefHeight="200.0" prefWidth="600.0" spacing="20.0" style="-fx-background-color: #FFFFFF;" GridPane.rowIndex="1">
          <children>
-            <Button mnemonicParsing="false" text="New Project" />
+            <Button fx:id="new_project_btn" mnemonicParsing="false" onAction="#new_project_func" text="New Project" />
             <Button mnemonicParsing="false" text="Load Project" />
             <Button fx:id="exit_btn" mnemonicParsing="false" onAction="#w_exit" text="Exit" />
          </children>
       </VBox>
-      <VBox alignment="CENTER" prefHeight="200.0" prefWidth="100.0">
+      <VBox alignment="CENTER" prefHeight="200.0" prefWidth="100.0" style="-fx-background-color: #000000;">
          <children>
-            <Label text="UML Diagram Editor">
+            <Label text="UML Diagram Editor" textFill="WHITE">
                <font>
-                  <Font size="22.0" />
+                  <Font name="System Bold" size="22.0" />
                </font>
             </Label>
          </children>
