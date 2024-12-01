@@ -19,7 +19,6 @@ public class LandingPageController {
         Parent root = fxmlLoader.load();
 
         NewProjectPageController newProjectPageController = fxmlLoader.getController();
-        newProjectPageController.setItemsList();
 
         Scene scene = new Scene(root);
         Stage stage = (Stage) ((Node)event.getSource()).getScene().getWindow();
