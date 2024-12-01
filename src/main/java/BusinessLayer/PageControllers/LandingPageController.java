@@ -1,4 +1,4 @@
-package BusinessLayer;
+package BusinessLayer.PageControllers;
 
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -15,11 +15,10 @@ import java.io.IOException;
 public class LandingPageController {
     @FXML
     public void new_project_func(ActionEvent event) throws IOException {
-        FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/UILayer/newProjectPage.fxml"));
+        FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/UILayer/Pages/newProjectPage.fxml"));
         Parent root = fxmlLoader.load();
 
         NewProjectPageController newProjectPageController = fxmlLoader.getController();
-        newProjectPageController.setItemsList();
 
         Scene scene = new Scene(root);
         Stage stage = (Stage) ((Node)event.getSource()).getScene().getWindow();

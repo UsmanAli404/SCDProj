@@ -24,7 +24,7 @@ public class UMLEditor extends Application {
     }
 
     public void UISetUp(Stage stage) throws IOException {
-        FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/UILayer/landingPage.fxml"));
+        FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/UILayer/Pages/landingPage.fxml"));
         Parent root = fxmlLoader.load();
         Scene scene = new Scene(root);
         stage.setScene(scene);
