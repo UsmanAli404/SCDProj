@@ -18,8 +18,6 @@ public class LandingPageController {
         FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/UILayer/Pages/newProjectPage.fxml"));
         Parent root = fxmlLoader.load();
 
-        NewProjectPageController newProjectPageController = fxmlLoader.getController();
-
         Scene scene = new Scene(root);
         Stage stage = (Stage) ((Node)event.getSource()).getScene().getWindow();
         stage.setScene(scene);
