@@ -114,15 +114,12 @@ public class ProjectPageController {
             // Show the dialog
             dialog.showAndWait();
         } catch (Exception e) {
-            e.printStackTrace();
+            //e.printStackTrace();
         }
     }
 
     public boolean modelAlreadyExists(String newModelName){
-        if(models.contains(newModelName)){
-            return true;
-        }
-        return false;
+        return models.contains(newModelName);
     }
 
     @FXML
@@ -192,10 +189,10 @@ public class ProjectPageController {
         //System.out.println(selectedItem.getValue());
 
         //for when the selected item is at the model type layer
-        if(selectedItem.getValue()=="Class Diagrams"){
+        if(Objects.equals(selectedItem.getValue(), "Class Diagrams")){
             lastSelectedDiagramType="Class Diagram";
             return;
-        } else if(selectedItem.getValue()=="Usecase Diagrams"){
+        } else if(Objects.equals(selectedItem.getValue(), "Usecase Diagrams")){
             lastSelectedDiagramType="Usecase Diagram";
             return;
         }
