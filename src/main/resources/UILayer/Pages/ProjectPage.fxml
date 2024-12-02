@@ -63,9 +63,12 @@
                         <Font name="System Bold" size="13.0" />
                      </font>
                   </Label>
-                  <VBox>
+                  <VBox spacing="5.0">
                      <children>
-                        <Label text="Model Explorer" textFill="WHITE" />
+                        <Label text="Model Explorer" textFill="WHITE">
+                           <font>
+                              <Font size="13.0" />
+                           </font></Label>
                         <TreeView fx:id="model_explorer" onContextMenuRequested="#selectItem" onMouseClicked="#selectItem" prefHeight="200.0" prefWidth="200.0" />
                      </children>
                   </VBox>
@@ -76,7 +79,7 @@
                   </HBox>
                   <HBox layoutX="20.0" layoutY="278.0">
                      <children>
-                        <Button fx:id="remove_model_btn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#remove_model_func" text="Remove Model" HBox.hgrow="ALWAYS" />
+                        <Button fx:id="remove_model_btn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#remove_model_func" text="Remove Model/Component" HBox.hgrow="ALWAYS" />
                      </children>
                   </HBox>
                </children>

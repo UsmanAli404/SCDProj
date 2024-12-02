@@ -19,17 +19,17 @@
             <Label text="Tools" textFill="WHITE" />
             <HBox prefHeight="28.0" prefWidth="101.0">
                <children>
-                  <ToggleButton maxWidth="1.7976931348623157E308" mnemonicParsing="false" text="Usecase" HBox.hgrow="ALWAYS" />
+                  <ToggleButton fx:id="usecase_toggle_btn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#usecase_func" text="Usecase" HBox.hgrow="ALWAYS" />
                </children>
             </HBox>
             <HBox>
                <children>
-                  <ToggleButton maxWidth="1.7976931348623157E308" mnemonicParsing="false" text="Actor" HBox.hgrow="ALWAYS" />
+                  <ToggleButton fx:id="actor_toggle_btn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#actor_func" text="Actor" HBox.hgrow="ALWAYS" />
                </children>
             </HBox>
             <HBox layoutX="10.0" layoutY="28.0" prefHeight="28.0" prefWidth="101.0">
                <children>
-                  <ToggleButton maxWidth="1.7976931348623157E308" mnemonicParsing="false" text="Association" HBox.hgrow="ALWAYS" />
+                  <ToggleButton fx:id="association_toggle_btn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#association_func" text="Association" HBox.hgrow="ALWAYS" />
                </children>
             </HBox>
             <HBox layoutX="10.0" layoutY="56.0" prefHeight="28.0" prefWidth="101.0" />
@@ -42,12 +42,12 @@
             <Label text="Annotations" textFill="WHITE" />
             <HBox prefHeight="21.0" prefWidth="101.0">
                <children>
-                  <ToggleButton maxWidth="1.7976931348623157E308" mnemonicParsing="false" text="Text" HBox.hgrow="ALWAYS" />
+                  <ToggleButton fx:id="text_toggle_btn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#text_func" text="Text" HBox.hgrow="ALWAYS" />
                </children>
             </HBox>
             <HBox>
                <children>
-                  <ToggleButton maxWidth="1.7976931348623157E308" mnemonicParsing="false" text="TextBox" HBox.hgrow="ALWAYS" />
+                  <ToggleButton fx:id="textbox_toggle_btn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#textbox_func" text="TextBox" HBox.hgrow="ALWAYS" />
                </children>
             </HBox>
             <HBox layoutX="10.0" layoutY="28.0" prefHeight="28.0" prefWidth="101.0" />

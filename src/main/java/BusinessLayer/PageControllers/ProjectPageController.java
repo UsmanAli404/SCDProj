@@ -140,23 +140,24 @@ public class ProjectPageController {
             return;
         }
 
-        //confirmation message
-        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-        alert.setTitle("Warning");
-        alert.setContentText("You are about to delete a model along with all of its components\n" +
-                "Do you wish to proceed?");
-        alert.getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
-        Optional<ButtonType> result = alert.showAndWait();
-        if(result.isPresent() && result.get()==ButtonType.CANCEL){
-            return;
-        } else if(result.isEmpty()){
-            return;
-        }
 
         //check if it is a model or one of its components
         //in case it is a model
         if(Objects.equals(lastSelectedTreeItem.getParent().getValue(), "Class Diagrams") ||
                 Objects.equals(lastSelectedTreeItem.getParent().getValue(), "Usecase Diagrams")){
+
+            //confirmation message
+            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+            alert.setTitle("Warning");
+            alert.setContentText("You are about to delete a model along with all of its components\n" +
+                    "Do you wish to proceed?");
+            alert.getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
+            Optional<ButtonType> result = alert.showAndWait();
+            if(result.isPresent() && result.get()==ButtonType.CANCEL){
+                return;
+            } else if(result.isEmpty()){
+                return;
+            }
 
             TreeItem<String> parent = lastSelectedTreeItem.getParent();
             parent.getChildren().remove(lastSelectedTreeItem);

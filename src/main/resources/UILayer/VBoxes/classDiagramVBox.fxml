@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ToggleButton?>
 <?import javafx.scene.layout.HBox?>
@@ -19,27 +20,27 @@
             <Label text="Tools" textFill="WHITE" />
             <HBox prefHeight="28.0" prefWidth="101.0">
                <children>
-                  <ToggleButton maxWidth="1.7976931348623157E308" mnemonicParsing="false" text="Class" HBox.hgrow="ALWAYS" />
+                  <ToggleButton fx:id="class_toggle_btn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#class_func" text="Class" HBox.hgrow="ALWAYS" />
                </children>
             </HBox>
             <HBox>
                <children>
-                  <ToggleButton maxWidth="1.7976931348623157E308" mnemonicParsing="false" text="Interface" HBox.hgrow="ALWAYS" />
+                  <ToggleButton fx:id="interface_toggle_btn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#interface_func" text="Interface" HBox.hgrow="ALWAYS" />
                </children>
             </HBox>
             <HBox layoutX="10.0" layoutY="28.0" prefHeight="28.0" prefWidth="101.0">
                <children>
-                  <ToggleButton maxWidth="1.7976931348623157E308" mnemonicParsing="false" text="Association" HBox.hgrow="ALWAYS" />
+                  <ToggleButton fx:id="association_toggle_btn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#association_func" text="Association" HBox.hgrow="ALWAYS" />
                </children>
             </HBox>
             <HBox layoutX="10.0" layoutY="56.0" prefHeight="28.0" prefWidth="101.0">
                <children>
-                  <ToggleButton maxWidth="1.7976931348623157E308" mnemonicParsing="false" text="Composition" HBox.hgrow="ALWAYS" />
+                  <ToggleButton fx:id="composition_toggle_btn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#composition_func" text="Composition" HBox.hgrow="ALWAYS" />
                </children>
             </HBox>
             <HBox layoutX="10.0" layoutY="84.0" prefHeight="28.0" prefWidth="101.0">
                <children>
-                  <ToggleButton maxWidth="1.7976931348623157E308" mnemonicParsing="false" text="Aggregation" HBox.hgrow="ALWAYS" />
+                  <ToggleButton fx:id="aggregation_toggle_btn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#aggregation_func" text="Aggregation" HBox.hgrow="ALWAYS" />
                </children>
             </HBox>
             <HBox layoutX="10.0" layoutY="112.0" prefHeight="28.0" prefWidth="101.0" />
@@ -50,17 +51,17 @@
             <Label text="Annotations" textFill="WHITE" />
             <HBox prefHeight="21.0" prefWidth="101.0">
                <children>
-                  <ToggleButton maxWidth="1.7976931348623157E308" mnemonicParsing="false" text="Text" HBox.hgrow="ALWAYS" />
+                  <ToggleButton fx:id="text_toggle_btn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#text_func" text="Text" HBox.hgrow="ALWAYS" />
                </children>
             </HBox>
             <HBox>
                <children>
-                  <ToggleButton maxWidth="1.7976931348623157E308" mnemonicParsing="false" text="TextBox" HBox.hgrow="ALWAYS" />
+                  <ToggleButton fx:id="textbox_toggle_btn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#textbox_func" text="TextBox" HBox.hgrow="ALWAYS" />
                </children>
             </HBox>
             <HBox layoutX="10.0" layoutY="28.0" prefHeight="28.0" prefWidth="101.0">
                <children>
-                  <ToggleButton maxWidth="1.7976931348623157E308" mnemonicParsing="false" text="Generate Code" HBox.hgrow="ALWAYS" />
+                  <Button fx:id="generateCode_btn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#generateCode_func" text="Generate Code" HBox.hgrow="ALWAYS" />
                </children>
             </HBox>
          </children>
