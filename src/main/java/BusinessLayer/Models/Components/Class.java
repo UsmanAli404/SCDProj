@@ -5,15 +5,33 @@ import BusinessLayer.Models.Component;
 import java.util.ArrayList;
 
 public class Class extends Component {
-    private ArrayList<String> attributes;
-    private ArrayList<String> methods;
+    private int width, height;
+    private ArrayList<String> attributes;//each must be unique
+    private ArrayList<String> methods;//each one must be unique
+    public Class(int id, int x, int y, int width, int height) {
+        super(id, x, y);
+        this.width = width;
+        this.height = height;
+    }
 
-    public Class(String id) {
-        super(id);
+    public int getWidth() {
+        return width;
+    }
+
+    public void setWidth(int width) {
+        this.width = width;
+    }
+
+    public int getHeight() {
+        return height;
+    }
+
+    public void setHeight(int height) {
+        this.height = height;
     }
 
     @Override
-    public void draw() {
+    public void draw(){
 
     }
 }
