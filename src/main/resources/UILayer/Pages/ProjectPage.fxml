@@ -7,6 +7,7 @@
 <?import javafx.scene.control.MenuBar?>
 <?import javafx.scene.control.MenuItem?>
 <?import javafx.scene.control.SplitPane?>
+<?import javafx.scene.control.TextField?>
 <?import javafx.scene.control.TreeView?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
@@ -20,8 +21,9 @@
         <menus>
           <Menu mnemonicParsing="false" text="File">
             <items>
-              <MenuItem mnemonicParsing="false" text="Close" />
-                  <MenuItem mnemonicParsing="false" text="Open" />
+                  <MenuItem mnemonicParsing="false" onAction="#loadFunc" text="load" />
+                  <MenuItem mnemonicParsing="false" onAction="#saveFunc" text="save" />
+                  <MenuItem mnemonicParsing="false" onAction="#exportFunc" text="Export" />
             </items>
           </Menu>
           <Menu mnemonicParsing="false" text="Edit">
@@ -52,7 +54,7 @@
                   <Label text="Select models from the Model Explorer to see their properties." textFill="WHITE" wrapText="true" />
                </children>
             </VBox>
-            <Pane prefHeight="373.0" prefWidth="427.0" />
+            <Pane fx:id="drawingPane" prefHeight="373.0" prefWidth="427.0" />
             <VBox prefHeight="200.0" prefWidth="100.0" spacing="10.0" style="-fx-background-color: #4d4d4d;">
                <padding>
                   <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
@@ -72,14 +74,20 @@
                         <TreeView fx:id="model_explorer" onContextMenuRequested="#selectItem" onMouseClicked="#selectItem" prefHeight="200.0" prefWidth="200.0" />
                      </children>
                   </VBox>
-                  <HBox>
+                  <VBox>
+                     <children>
+                        <Label text="Selected Component" textFill="WHITE" />
+                        <TextField fx:id="selectedComponentTextField" editable="false" promptText="seleted component will appear here" />
+                     </children>
+                  </VBox>
+                  <HBox layoutX="20.0" layoutY="278.0">
                      <children>
                         <Button fx:id="add_model_btn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#add_model_func" text="Add Model" HBox.hgrow="ALWAYS" />
                      </children>
                   </HBox>
-                  <HBox layoutX="20.0" layoutY="278.0">
+                  <HBox layoutX="20.0" layoutY="320.0">
                      <children>
-                        <Button fx:id="remove_model_btn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#remove_model_func" text="Remove Model/Component" HBox.hgrow="ALWAYS" />
+                        <Button fx:id="remove_model_btn1" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#remove_model_component_func" text="Remove Model/Component" HBox.hgrow="ALWAYS" />
                      </children>
                   </HBox>
                </children>

@@ -11,10 +11,22 @@ import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 
 import java.io.IOException;
+import java.util.NoSuchElementException;
+import java.util.logging.Level;
+import java.util.logging.LogManager;
+import java.util.logging.Logger;
 
 public class UMLEditor extends Application {
 
+    private static final Logger LOGGER = Logger.getLogger(UMLEditor.class.getName());
+
     public static void main(String[] args){
+        try {
+            LogManager.getLogManager().readConfiguration(UMLEditor.class.getResourceAsStream("/logging.properties"));
+            LOGGER.info("Logging system initialized!");
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Could not set up logger configuration.", e);
+        }
         launch(args);
     }
 
@@ -23,11 +35,15 @@ public class UMLEditor extends Application {
         UISetUp(stage);
     }
 
-    public void UISetUp(Stage stage) throws IOException {
+    public void UISetUp(Stage stage){
         FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/UILayer/Pages/landingPage.fxml"));
-        Parent root = fxmlLoader.load();
-        Scene scene = new Scene(root);
-        stage.setScene(scene);
+        try {
+            Parent root = fxmlLoader.load();
+            stage.setScene(new Scene(root));
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Failed to load landingPage.fxml.", e);
+            throw new RuntimeException(e);
+        }
         stage.setOnCloseRequest(windowEvent -> {
             w_exit(stage, windowEvent);
         });
@@ -42,10 +58,14 @@ public class UMLEditor extends Application {
         Alert exit_alert = new Alert(Alert.AlertType.CONFIRMATION);
         exit_alert.setTitle("Exit Confirmation");
         exit_alert.setContentText("Do you want to exit?");
-        if(exit_alert.showAndWait().get()== ButtonType.OK){
-            stage.close();
-        } else {
-            event.consume();
+        try {
+            if (exit_alert.showAndWait().get() == ButtonType.OK) {
+                stage.close();
+            } else {
+                event.consume();
+            }
+        } catch (NoSuchElementException e){
+            LOGGER.log(Level.WARNING, "Could not find element", e);
         }
     }
 }

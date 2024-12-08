@@ -14,8 +14,13 @@ import javafx.stage.Stage;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class NewProjectPageController {
+
+    private static final Logger LOGGER = Logger.getLogger(NewProjectPageController.class.getName());
+
     @FXML
     TextField project_name_field;
     @FXML
@@ -36,20 +41,21 @@ public class NewProjectPageController {
     }
 
     @FXML
-    public void make_project_func(ActionEvent event) throws IOException {
+    public void make_project_func(ActionEvent event){
         if(validation()){
-            FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/UILayer/Pages/ProjectPage.fxml"));
-            Parent root = fxmlLoader.load();
+            try {
+                FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/UILayer/Pages/ProjectPage.fxml"));
+                Parent root = fxmlLoader.load();
+                ProjectPageController projectPageController = fxmlLoader.getController();
+                projectPageController.initializeProject(project_name_field.getText(), path_field.getText());
+                projectPageController.initializeModelExplorer();
 
-            ProjectPageController projectPageController = fxmlLoader.getController();
-            projectPageController.setProjectName(project_name_field.getText());
-            projectPageController.setProjectPath(path_field.getText());
-            projectPageController.initializeModelExplorer();
-            projectPageController.initializeModels();
-
-            Stage stage = (Stage) ((Node)event.getSource()).getScene().getWindow();
-            Scene scene = new Scene(root);
-            stage.setScene(scene);
+                Stage stage = (Stage) ((Node)event.getSource()).getScene().getWindow();
+                Scene scene = new Scene(root);
+                stage.setScene(scene);
+            } catch (IOException e){
+                LOGGER.log(Level.SEVERE, "Could not load ProjectPage.fxml", e);
+            }
         } else {
             Alert alert = new Alert(Alert.AlertType.ERROR);
             alert.setTitle("Error");
@@ -70,10 +76,14 @@ public class NewProjectPageController {
     }
 
     @FXML
-    public void back_to_landing_page_func(ActionEvent event) throws IOException {
-        Parent root = FXMLLoader.load(getClass().getResource("/UILayer/Pages/landingPage.fxml"));
-        Stage stage = (Stage) ((Node)event.getSource()).getScene().getWindow();
-        Scene scene = new Scene(root);
-        stage.setScene(scene);
+    public void back_to_landing_page_func(ActionEvent event){
+        try {
+            Parent root = FXMLLoader.load(getClass().getResource("/UILayer/Pages/landingPage.fxml"));
+            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+            Scene scene = new Scene(root);
+            stage.setScene(scene);
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Failed to load landingPage.fxml", e);
+        }
     }
 }

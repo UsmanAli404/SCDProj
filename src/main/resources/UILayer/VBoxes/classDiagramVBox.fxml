@@ -3,12 +3,11 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
-<?import javafx.scene.control.ToggleButton?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<VBox prefHeight="200.0" prefWidth="100.0" spacing="10.0" style="-fx-background-color: #4d4d4d;" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="BusinessLayer.VBoxControllers.ClassDiagramVBoxController">
+<VBox prefHeight="200.0" prefWidth="100.0" spacing="10.0" style="-fx-background-color: #4d4d4d;" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="BusinessLayer.OtherControllers.ClassDiagramController">
    <children>
       <Label fx:id="model_name" text="Class Diagram: My Class Diagram" textFill="WHITE">
          <font>
@@ -20,48 +19,52 @@
             <Label text="Tools" textFill="WHITE" />
             <HBox prefHeight="28.0" prefWidth="101.0">
                <children>
-                  <ToggleButton fx:id="class_toggle_btn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#class_func" text="Class" HBox.hgrow="ALWAYS" />
+                  <Button fx:id="class_btn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#classFunc" text="Class" HBox.hgrow="ALWAYS" />
                </children>
             </HBox>
             <HBox>
                <children>
-                  <ToggleButton fx:id="interface_toggle_btn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#interface_func" text="Interface" HBox.hgrow="ALWAYS" />
+                  <Button fx:id="interface_btn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#interfaceFunc" text="Interface" HBox.hgrow="ALWAYS" />
                </children>
             </HBox>
             <HBox layoutX="10.0" layoutY="28.0" prefHeight="28.0" prefWidth="101.0">
                <children>
-                  <ToggleButton fx:id="association_toggle_btn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#association_func" text="Association" HBox.hgrow="ALWAYS" />
+                  <Button fx:id="association_btn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#associationFunc" text="Association" HBox.hgrow="ALWAYS" />
                </children>
             </HBox>
             <HBox layoutX="10.0" layoutY="56.0" prefHeight="28.0" prefWidth="101.0">
                <children>
-                  <ToggleButton fx:id="composition_toggle_btn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#composition_func" text="Composition" HBox.hgrow="ALWAYS" />
+                  <Button fx:id="composition_btn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#compositionFunc" text="Composition" HBox.hgrow="ALWAYS" />
                </children>
             </HBox>
             <HBox layoutX="10.0" layoutY="84.0" prefHeight="28.0" prefWidth="101.0">
                <children>
-                  <ToggleButton fx:id="aggregation_toggle_btn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#aggregation_func" text="Aggregation" HBox.hgrow="ALWAYS" />
+                  <Button fx:id="aggregation_btn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#aggregationFunc" text="Aggregation" HBox.hgrow="ALWAYS" />
                </children>
             </HBox>
-            <HBox layoutX="10.0" layoutY="112.0" prefHeight="28.0" prefWidth="101.0" />
+            <HBox layoutX="10.0" layoutY="124.0" prefHeight="28.0" prefWidth="101.0">
+               <children>
+                  <Button fx:id="inheritance_btn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#inheritanceFunc" text="Inheritance" HBox.hgrow="ALWAYS" />
+               </children>
+            </HBox>
+            <HBox layoutX="10.0" layoutY="184.0" prefHeight="28.0" prefWidth="101.0">
+               <children>
+                  <Button fx:id="dashedLineBtn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#dashedLineFunc" text="Dashed Line" HBox.hgrow="ALWAYS" />
+               </children>
+            </HBox>
          </children>
       </VBox>
       <VBox layoutX="20.0" layoutY="47.0" prefHeight="200.0" prefWidth="100.0" spacing="5.0">
          <children>
             <Label text="Annotations" textFill="WHITE" />
-            <HBox prefHeight="21.0" prefWidth="101.0">
-               <children>
-                  <ToggleButton fx:id="text_toggle_btn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#text_func" text="Text" HBox.hgrow="ALWAYS" />
-               </children>
-            </HBox>
             <HBox>
                <children>
-                  <ToggleButton fx:id="textbox_toggle_btn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#textbox_func" text="TextBox" HBox.hgrow="ALWAYS" />
+                  <Button fx:id="textBox_btn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#textBoxFunc" text="TextBox" HBox.hgrow="ALWAYS" />
                </children>
             </HBox>
             <HBox layoutX="10.0" layoutY="28.0" prefHeight="28.0" prefWidth="101.0">
                <children>
-                  <Button fx:id="generateCode_btn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#generateCode_func" text="Generate Code" HBox.hgrow="ALWAYS" />
+                  <Button fx:id="generateCode_btn" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#generateCodeFunc" text="Generate Code" HBox.hgrow="ALWAYS" />
                </children>
             </HBox>
          </children>
