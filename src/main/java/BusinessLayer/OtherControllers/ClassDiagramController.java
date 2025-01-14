@@ -32,7 +32,6 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
-import java.util.function.BiConsumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -42,7 +41,6 @@ public class ClassDiagramController {
 
     public ProjectPageController projectPageController;
     public ClassDiagram classDiagram;
-    private Map<String, BiConsumer<Double, Double>> drawActions = new HashMap<>();
     @FXML
     public Label model_name;
 
@@ -50,7 +48,6 @@ public class ClassDiagramController {
     public Pane drawingPane;
     private Canvas canvas;
     private GraphicsContext graphicsContext;
-    public String currentlySelectedBtn = "";//activeTool
     private String activeTool = null;
     private Map<Node, Object> elementMap = new HashMap<>();
     private double mouseX, mouseY;
@@ -63,9 +60,6 @@ public class ClassDiagramController {
         canvas = new Canvas(drawingPane.getWidth(), drawingPane.getHeight());
         graphicsContext = canvas.getGraphicsContext2D();
         drawingPane.getChildren().add(canvas);
-        drawActions.put("Class", this::drawClass);
-        drawActions.put("Interface", this::drawInterface);
-        drawActions.put("TextBox", this::drawTextBox);
         drawingPane.setOnMouseMoved(this::trackMouse);
         drawingPane.setOnMouseClicked(this::handleDrawingCanvasClicked);
         drawingPane.setOnMousePressed(this::handleMousePressed);
@@ -76,9 +70,6 @@ public class ClassDiagramController {
      public void setDrawingPane(Pane drawingPane){
         this.drawingPane = drawingPane;
     }
-//    public Pane getDrawingPane(){
-//        return drawingPane;
-//    }
     /*
     *
     * Handle functions
@@ -88,39 +79,12 @@ public class ClassDiagramController {
         System.out.println("handleMousePressed");
         double x = event.getX();
         double y = event.getY();
-        if ("Association".equals(activeTool)) {
-            initialPoint = new Point(x, y);
-            tempLine = new Line(initialPoint.getX(), initialPoint.getY(), x, y);
-            tempLine.getStrokeDashArray().addAll(5.0, 5.0);
-            drawingPane.getChildren().add(tempLine);
-            return;
-        }
 
-        if ("DashedLine".equals(activeTool)) {
-            initialPoint = new Point(x, y);
-            tempLine = new Line(initialPoint.getX(), initialPoint.getY(), x, y);
-            tempLine.getStrokeDashArray().addAll(5.0, 5.0);
-            drawingPane.getChildren().add(tempLine);
-            return;
-        }
-        
-        if("Inheritance".equals(activeTool)){
-            initialPoint = new Point(x, y);
-            tempLine = new Line(initialPoint.getX(), initialPoint.getY(), x, y);
-            tempLine.getStrokeDashArray().addAll(5.0, 5.0);
-            drawingPane.getChildren().add(tempLine);
-            return;
-        }
-
-        if("Aggregation".equals(activeTool)){
-            initialPoint = new Point(x, y);
-            tempLine = new Line(initialPoint.getX(), initialPoint.getY(), x, y);
-            tempLine.getStrokeDashArray().addAll(5.0, 5.0);
-            drawingPane.getChildren().add(tempLine);
-            return;
-        }
-
-        if("Composition".equals(activeTool)){
+        if(Objects.equals(activeTool, "Association")
+                || Objects.equals(activeTool, "Inheritance")
+                || Objects.equals(activeTool, "Aggregation")
+                || Objects.equals(activeTool, "Composition")
+                || Objects.equals(activeTool, "DashedLine")){
             initialPoint = new Point(x, y);
             tempLine = new Line(initialPoint.getX(), initialPoint.getY(), x, y);
             tempLine.getStrokeDashArray().addAll(5.0, 5.0);
@@ -155,20 +119,16 @@ public class ClassDiagramController {
             double deltaY = event.getY() - initialMousePosition.getY();
             selectedNode.setLayoutX(selectedNode.getLayoutX() + deltaX);
             selectedNode.setLayoutY(selectedNode.getLayoutY() + deltaY);
+
             Object element = elementMap.get(selectedNode);
-            if (element instanceof Class) {
-                Class _class = (Class) element;
-                _class.getInitialPoint().setX(_class.getInitialPoint().getX() + deltaX);
-                _class.getInitialPoint().setY(_class.getInitialPoint().getY() + deltaY);
-            } else if(element instanceof Interface){
-                Interface _interface = (Interface) element;
-                _interface.getInitialPoint().setX(_interface.getX()+deltaX);
-                _interface.getInitialPoint().setY(_interface.getY()+deltaY);
-            } else if(element instanceof TextBox){
-                TextBox textBox = (TextBox) element;
-                textBox.getInitialPoint().setX(textBox.getX() + deltaX);
-                textBox.getInitialPoint().setY(textBox.getY() + deltaY);
+            Component component = (Component) element;
+            if(component instanceof Class ||
+                    component instanceof Interface ||
+                    component instanceof TextBox){
+                component.setX(component.getX()+deltaX);
+                component.setY(component.getY()+deltaY);
             }
+
             redrawCanvas();
             initialMousePosition.setX(event.getX());
             initialMousePosition.setY(event.getY());
@@ -189,16 +149,17 @@ public class ClassDiagramController {
             tempLine = null;
             Point finalPoint = new Point(event.getX(), event.getY());
             if(Objects.equals(activeTool, "Association")){
-                drawAssociation(initialPoint, finalPoint);
+                drawAssociation(null, initialPoint, finalPoint);
             } else if(Objects.equals(activeTool, "DashedLine")){
-                drawDashedLine(initialPoint, finalPoint);
+                drawDashedLine(null, initialPoint, finalPoint);
             } else if(Objects.equals(activeTool, "Inheritance")){
-                drawInheritance(initialPoint, finalPoint);
+                drawInheritance(null, initialPoint, finalPoint);
             } else if(Objects.equals(activeTool, "Aggregation")){
-                drawAggregation(initialPoint, finalPoint);
+                drawAggregation(null, initialPoint, finalPoint);
             } else if(Objects.equals(activeTool, "Composition")){
-                drawComposition(initialPoint, finalPoint);
+                drawComposition(null, initialPoint, finalPoint);
             }
+            activeTool = null;
         }
         //selectedNode = null;
         initialMousePosition = null;
@@ -265,11 +226,17 @@ public class ClassDiagramController {
                 }
             }
         }
+
         if (activeTool != null) {
-            BiConsumer<Double, Double> drawAction = drawActions.get(activeTool);
-            if (drawAction != null) {
-                drawAction.accept(x, y);
+            //associate x, y coordinates with the active tool
+            if(activeTool.equals("Class")){
+                drawClass(null, x, y);
+            } else if(activeTool.equals("Interface")){
+                drawInterface(null, x, y);
+            } else if(activeTool.equals("TextBox")){
+                drawTextBox(null, x, y);
             }
+            activeTool = null;
         }
     }
 
@@ -278,18 +245,77 @@ public class ClassDiagramController {
      * Draw functions
      *
      */
-    public void drawInterface(Double x, Double y) {
 
-        System.out.println("drawInterface called! x = " + x + " y = " + y);
-        activeTool = null;
-        Point initialPoint = new Point(x, y);
-        Interface myClass = new Interface(classDiagram.getUpcomingComponentID(), initialPoint);
+    private void drawClass(Component class_, double x, double y) {
+        System.out.println("drawing class");
+        Point initialPoint;
+        if(class_ == null){
+            //will be called whenever a new class component is created
+            initialPoint = new Point(x, y);
+            class_ = new Class(classDiagram.getUpcomingComponentID(), initialPoint);
+
+            addComponentToListAndUpdateTree(class_);
+        } else {
+            initialPoint = new Point(class_.getInitialPoint().getX(), class_.getInitialPoint().getY());
+        }
+
         double initialWidth = 120;
         VBox classBox = new VBox();
-        classBox.setLayoutX(x);
-        classBox.setLayoutY(y);
+        classBox.setLayoutX(initialPoint.getX());
+        classBox.setLayoutY(initialPoint.getY());
+        classBox.setStyle("-fx-border-color: black; -fx-border-width: 1; -fx-padding: 0; -fx-background-color: #F5E49C;");
+        Label classNameLabel = new Label(((Class)class_).getClassName());
+        classNameLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
+        VBox classNameBox = new VBox(classNameLabel);
+        classNameBox.setMinWidth(initialWidth);
+        classNameBox.setStyle("-fx-border-color: black; -fx-border-width: 1; -fx-padding: 5;");
+        VBox attributesBox = new VBox();
+        attributesBox.setMinWidth(initialWidth);
+        attributesBox.setStyle("-fx-border-color: black; -fx-border-width: 1; -fx-padding: 5;");
+        ArrayList<Attribute> attributes = ((Class)class_).getAttributes();
+        for (Attribute attribute : attributes) {
+            Label attributeLabel = new Label(attribute.toString());
+            attributesBox.getChildren().add(attributeLabel);
+        }
+        VBox functionsBox = new VBox();
+        functionsBox.setMinWidth(initialWidth);
+        functionsBox.setStyle("-fx-border-color: black; -fx-border-width: 1; -fx-padding: 5;");
+        ArrayList<Function> functions = ((Class)class_).getFunctions();
+        for (Function function : functions) {
+            Label functionLabel = new Label(function.toString());
+            functionsBox.getChildren().add(functionLabel);
+        }
+        double maxWidth = Math.max(initialWidth, Math.max(getMaxLabelWidth(classNameBox), Math.max(getMaxLabelWidth(attributesBox), getMaxLabelWidth(functionsBox))));
+        classNameBox.setMinWidth(maxWidth);
+        attributesBox.setMinWidth(maxWidth);
+        functionsBox.setMinWidth(maxWidth);
+        classBox.getChildren().addAll(classNameBox, attributesBox, functionsBox);
+
+        drawingPane.getChildren().add(classBox);
+
+        if(!IsComponentInElementMap(class_)){
+            elementMap.put(classBox, class_);
+        }
+    }
+
+    public void drawInterface(Component interface_, double x, double y) {
+        System.out.println("drawInterface called! x = " + x + " y = " + y);
+        Point initialPoint;
+        if(interface_ == null){
+            initialPoint = new Point(x, y);
+            interface_ = new Interface(classDiagram.getUpcomingComponentID(), initialPoint);
+
+            addComponentToListAndUpdateTree(interface_);
+        } else {
+            initialPoint = new Point(interface_.getInitialPoint().getX(), interface_.getInitialPoint().getY());
+        }
+
+        double initialWidth = 120;
+        VBox classBox = new VBox();
+        classBox.setLayoutX(initialPoint.getX());
+        classBox.setLayoutY(initialPoint.getY());
         classBox.setStyle("-fx-border-color: black; -fx-border-width: 2; -fx-padding: 5; -fx-background-color: #F5E49C;");
-        Label classNameLabel = new Label(myClass.getClassName());
+        Label classNameLabel = new Label(((Interface)interface_).getClassName());
         Label interfaceLabel = new Label("  <<Interface>>");
         classNameLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
         interfaceLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
@@ -303,7 +329,7 @@ public class ClassDiagramController {
         VBox functionsBox = new VBox();
         functionsBox.setMinWidth(initialWidth);
         functionsBox.setStyle("-fx-border-color: black; -fx-border-width: 1; -fx-padding: 5;");
-        ArrayList<Function> functions = myClass.getFunctions();
+        ArrayList<Function> functions = ((Interface)interface_).getFunctions();
         for (Function function : functions) {
             Label functionLabel = new Label(function.toString());
             functionsBox.getChildren().add(functionLabel);
@@ -315,763 +341,23 @@ public class ClassDiagramController {
         classBox.getChildren().addAll(classNameBox, attributesBox, functionsBox);
         drawingPane.getChildren().add(classBox);
 
-        classDiagram.addComponent(myClass);
-
-        //updating the model explorer
-        TreeItem<String> currentClassDiagramTreeItem = projectPageController.getModelTreeItemByName(classDiagram.getModelName());
-        if(currentClassDiagramTreeItem==null){
-            System.out.println("Class TreeItem is null, can't add a new treeItem to it!");
-        } else {
-            System.out.println("TreeItem with interface name: "+currentClassDiagramTreeItem.getValue()+" found!");
-            TreeItem<String> newComponentTreeItem = new TreeItem<>(myClass.getName()+" ("+myClass.getId()+")");
-            currentClassDiagramTreeItem.getChildren().add(newComponentTreeItem);
-        }
-        elementMap.put(classBox, myClass);
-    }
-
-    private void drawClass(double x, double y) {
-        System.out.println("drawing class");
-        activeTool = null;
-        Point initialPoint = new Point(x, y);
-        Class myClass = new Class(classDiagram.getUpcomingComponentID(), initialPoint);
-        double initialWidth = 120;
-        VBox classBox = new VBox();
-        classBox.setLayoutX(x);
-        classBox.setLayoutY(y);
-        classBox.setStyle("-fx-border-color: black; -fx-border-width: 1; -fx-padding: 0; -fx-background-color: #F5E49C;");
-        Label classNameLabel = new Label(myClass.getClassName());
-        classNameLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
-        VBox classNameBox = new VBox(classNameLabel);
-        classNameBox.setMinWidth(initialWidth);
-        classNameBox.setStyle("-fx-border-color: black; -fx-border-width: 1; -fx-padding: 5;");
-        VBox attributesBox = new VBox();
-        attributesBox.setMinWidth(initialWidth);
-        attributesBox.setStyle("-fx-border-color: black; -fx-border-width: 1; -fx-padding: 5;");
-        ArrayList<Attribute> attributes = myClass.getAttributes();
-        for (Attribute attribute : attributes) {
-            Label attributeLabel = new Label(attribute.toString());
-            attributesBox.getChildren().add(attributeLabel);
-        }
-        VBox functionsBox = new VBox();
-        functionsBox.setMinWidth(initialWidth);
-        functionsBox.setStyle("-fx-border-color: black; -fx-border-width: 1; -fx-padding: 5;");
-        ArrayList<Function> functions = myClass.getFunctions();
-        for (Function function : functions) {
-            Label functionLabel = new Label(function.toString());
-            functionsBox.getChildren().add(functionLabel);
-        }
-        double maxWidth = Math.max(initialWidth, Math.max(getMaxLabelWidth(classNameBox), Math.max(getMaxLabelWidth(attributesBox), getMaxLabelWidth(functionsBox))));
-        classNameBox.setMinWidth(maxWidth);
-        attributesBox.setMinWidth(maxWidth);
-        functionsBox.setMinWidth(maxWidth);
-        classBox.getChildren().addAll(classNameBox, attributesBox, functionsBox);
-        drawingPane.getChildren().add(classBox);
-
-        classDiagram.addComponent(myClass);
-
-        //updating the model explorer
-        TreeItem<String> currentClassDiagramTreeItem = projectPageController.getModelTreeItemByName(classDiagram.getModelName());
-        if(currentClassDiagramTreeItem==null){
-            System.out.println("Class TreeItem is null, can't add a new treeItem to it!");
-        } else {
-            System.out.println("TreeItem with class name: "+currentClassDiagramTreeItem.getValue()+" found!");
-            TreeItem<String> newComponentTreeItem = new TreeItem<>(myClass.getName()+" ("+myClass.getId()+")");
-            currentClassDiagramTreeItem.getChildren().add(newComponentTreeItem);
-        }
-
-        elementMap.put(classBox, myClass);
-    }
-
-    private void drawAssociation(Point initialPoint, Point finalPoint) {
-        System.out.println("drawing association");
-        activeTool = null;
-        System.out.println("initial point: x = "+initialPoint.getX() +  ", y =  " + initialPoint.getY());
-        System.out.println("final point: x = "+finalPoint.getX() +  ", y =  " + finalPoint.getY());
-        if(initialPoint==null){
-            System.out.println("initial point is null!");
-            //return;
-        }
-
-        if(finalPoint==null){
-            System.out.println("final point is null!");
-            //return;
-        }
-
-        Component startClass = getClassAtPoint(initialPoint);
-        Component endClass = getClassAtPoint(finalPoint);
-        if(startClass==null){
-            System.out.println("start class is null!");
-        }
-
-        if(endClass==null){
-            System.out.println("end class is null!");
-        }
-
-        if(initialPoint==null || finalPoint==null ||startClass==null||endClass==null){
-            return;
-        }
-
-        //search if both the start and end classes already have an association
-        boolean associationExists = hasAssociation(startClass, endClass);
-        if(associationExists){
-            System.out.println("There is already an association between the two classes");
-            return;
-        }
-
-        if (startClass != null && endClass != null) {
-            System.out.println("Start Class name: "+startClass.getName());
-            System.out.println("End Class name: "+endClass.getName());
-
-            if(startClass instanceof TextBox || endClass instanceof TextBox){
-                System.out.println("One or both components are of type TextBox");
-                return;
-            }
-
-            Line line = new Line(
-                    startClass.getInitialPoint().getX(), startClass.getInitialPoint().getY(),
-                    endClass.getInitialPoint().getX(), endClass.getInitialPoint().getY()
-            );
-            line.setStrokeWidth(2.0);
-            drawingPane.getChildren().add(line);
-
-            Association association = new Association(classDiagram.getUpcomingComponentID(), initialPoint.getX(), initialPoint.getY(), startClass, endClass);
-            classDiagram.addComponent(association);
-
-            elementMap.put(line, association);
-
-            Text associationText = new Text(association.getName());
-            associationText.setX((association.getStartClass().getX() + association.getEndClass().getX()) / 2);
-            associationText.setY((association.getStartClass().getY() + association.getEndClass().getY()) / 2 - 10);
-            drawingPane.getChildren().add(associationText);
-
-            Text startMultiplicityText;
-            if(association.getStartInitialMultiplicity().isEmpty() || association.getStartEndMultiplicity().isEmpty()){
-                startMultiplicityText = new Text("");
-            } else {
-                startMultiplicityText = new Text(association.getStartInitialMultiplicity()+".."+association.getStartEndMultiplicity());
-            }
-
-            startMultiplicityText.setX(association.getStartClass().getX() - 15);
-            startMultiplicityText.setY(association.getStartClass().getY() - 5);
-            drawingPane.getChildren().add(startMultiplicityText);
-
-            Text endMultiplicityText;
-            if(association.getEndStartMultiplicity().isEmpty() || association.getEndEndMultiplicity().isEmpty()){
-                endMultiplicityText = new Text("");
-            } else {
-                endMultiplicityText = new Text(association.getEndStartMultiplicity()+".."+association.getEndEndMultiplicity());
-            }
-
-            endMultiplicityText.setX(association.getEndClass().getX() + 5);
-            endMultiplicityText.setY(association.getEndClass().getY() - 5);
-            drawingPane.getChildren().add(endMultiplicityText);
-
-            //updating the model explorer
-            TreeItem<String> currentClassDiagramTreeItem = projectPageController.getModelTreeItemByName(classDiagram.getModelName());
-            if(currentClassDiagramTreeItem==null){
-                System.out.println("Class TreeItem is null, can't add a new treeItem to it!");
-            } else {
-                System.out.println("TreeItem with class name: "+currentClassDiagramTreeItem.getValue()+" found!");
-                TreeItem<String> newComponentTreeItem = new TreeItem<>(association.getName()+" ("+association.getId()+")");
-                currentClassDiagramTreeItem.getChildren().add(newComponentTreeItem);
-            }
-        } else {
-            showWarning("Association Error", "Both endpoints must be inside a class.");
-        }
-    }
-    
-    private void drawInheritance(Point initialPoint, Point finalPoint){
-        System.out.println("drawing inheritance");
-        activeTool = null;
-        System.out.println("initial point: x = "+initialPoint.getX() +  ", y =  " + initialPoint.getY());
-        System.out.println("final point: x = "+finalPoint.getX() +  ", y =  " + finalPoint.getY());
-        if(initialPoint==null){
-            System.out.println("initial point is null!");
-            //return;
-        }
-
-        if(finalPoint==null){
-            System.out.println("final point is null!");
-            //return;
-        }
-
-        Component startClass = getClassAtPoint(initialPoint);
-        Component endClass = getClassAtPoint(finalPoint);
-        if(startClass==null){
-            System.out.println("start class is null!");
-        }
-
-        if(endClass==null){
-            System.out.println("end class is null!");
-        }
-
-        if(initialPoint==null || finalPoint==null ||startClass==null || endClass==null){
-            return;
-        }
-
-        //search if both the start and end classes already have an association
-        boolean inheritanceExists = hasInheritance(startClass, endClass);
-        if(inheritanceExists){
-            System.out.println("There is already an association between the two classes");
-            return;
-        }
-
-        if (startClass != null && endClass != null) {
-            System.out.println("Start Class name: "+startClass.getName());
-            System.out.println("End Class name: "+endClass.getName());
-
-            if(startClass instanceof TextBox || endClass instanceof TextBox){
-                System.out.println("One or both components are of type TextBox");
-                return;
-            }
-
-            Line line = new Line(
-                    startClass.getInitialPoint().getX(), startClass.getInitialPoint().getY(),
-                    endClass.getInitialPoint().getX(), endClass.getInitialPoint().getY()
-            );
-            line.setStrokeWidth(2.0);
-            drawingPane.getChildren().add(line);
-            //the line must have an arrow head on the end class side
-
-            // Calculate arrowhead coordinates
-            double arrowLength = 15; // Length of the arrowhead
-            double arrowWidth = 7; // Width of the arrowhead
-            double startX = line.getEndX();
-            double startY = line.getEndY();
-            double endX = line.getStartX();
-            double endY = line.getStartY();
-
-            double angle = Math.atan2(startY - endY, startX - endX);
-            double sin = Math.sin(angle);
-            double cos = Math.cos(angle);
-
-            // Points for the arrowhead
-            double x1 = startX - arrowLength * cos + arrowWidth * sin;
-            double y1 = startY - arrowLength * sin - arrowWidth * cos;
-            double x2 = startX - arrowLength * cos - arrowWidth * sin;
-            double y2 = startY - arrowLength * sin + arrowWidth * cos;
-
-            // Create the arrowhead
-            Polygon arrowHead = new Polygon();
-            arrowHead.getPoints().addAll(
-                    startX, startY,
-                    x1, y1,
-                    x2, y2
-            );
-            arrowHead.setStyle("-fx-fill: black;");
-            drawingPane.getChildren().add(arrowHead);
-
-            Inheritance inheritance = new Inheritance(classDiagram.getUpcomingComponentID(), initialPoint.getX(), initialPoint.getY(), startClass, endClass);
-            classDiagram.addComponent(inheritance);
-
-            elementMap.put(line, inheritance);
-
-            Text inheritanceText = new Text(inheritance.getName());
-            inheritanceText.setX((inheritance.getStartClass().getX() + inheritance.getEndClass().getX()) / 2);
-            inheritanceText.setY((inheritance.getStartClass().getY() + inheritance.getEndClass().getY()) / 2 - 10);
-            drawingPane.getChildren().add(inheritanceText);
-
-            Text startMultiplicityText;
-            if(inheritance.getStartInitialMultiplicity().isEmpty() || inheritance.getStartEndMultiplicity().isEmpty()){
-                startMultiplicityText = new Text("");
-            } else {
-                startMultiplicityText = new Text(inheritance.getStartInitialMultiplicity()+".."+inheritance.getStartEndMultiplicity());
-            }
-
-            startMultiplicityText.setX(inheritance.getStartClass().getX() - 15);
-            startMultiplicityText.setY(inheritance.getStartClass().getY() - 5);
-            drawingPane.getChildren().add(startMultiplicityText);
-
-            Text endMultiplicityText;
-            if(inheritance.getEndStartMultiplicity().isEmpty() || inheritance.getEndEndMultiplicity().isEmpty()){
-                endMultiplicityText = new Text("");
-            } else {
-                endMultiplicityText = new Text(inheritance.getEndStartMultiplicity()+".."+inheritance.getEndEndMultiplicity());
-            }
-
-            endMultiplicityText.setX(inheritance.getEndClass().getX() + 5);
-            endMultiplicityText.setY(inheritance.getEndClass().getY() - 5);
-            drawingPane.getChildren().add(endMultiplicityText);
-
-            //updating the model explorer
-            TreeItem<String> currentClassDiagramTreeItem = projectPageController.getModelTreeItemByName(classDiagram.getModelName());
-            if(currentClassDiagramTreeItem==null){
-                System.out.println("Class TreeItem is null, can't add a new treeItem to it!");
-            } else {
-                System.out.println("TreeItem with class name: "+currentClassDiagramTreeItem.getValue()+" found!");
-                TreeItem<String> newComponentTreeItem = new TreeItem<>(inheritance.getName()+" ("+inheritance.getId()+")");
-                currentClassDiagramTreeItem.getChildren().add(newComponentTreeItem);
-            }
-        } else {
-            showWarning("Inheritacne Error", "Both endpoints must be inside a class.");
-        }
-    }
-    
-    private void drawAggregation(Point initialPoint, Point finalPoint){
-        System.out.println("drawing aggregation");
-        activeTool = null;
-        System.out.println("initial point: x = "+initialPoint.getX() +  ", y =  " + initialPoint.getY());
-        System.out.println("final point: x = "+finalPoint.getX() +  ", y =  " + finalPoint.getY());
-        if(initialPoint==null){
-            System.out.println("initial point is null!");
-            //return;
-        }
-
-        if(finalPoint==null){
-            System.out.println("final point is null!");
-            //return;
-        }
-
-        Component startClass = getClassAtPoint(initialPoint);
-        Component endClass = getClassAtPoint(finalPoint);
-        if(startClass==null){
-            System.out.println("start class is null!");
-        }
-
-        if(endClass==null){
-            System.out.println("end class is null!");
-        }
-
-        if(initialPoint==null || finalPoint==null ||startClass==null || endClass==null){
-            return;
-        }
-
-        //search if both the start and end classes already have an association
-        boolean aggregationExists = hasAggregation(startClass, endClass);
-        if(aggregationExists){
-            System.out.println("There is already an aggregation between the two classes");
-            return;
-        }
-
-        // Inside your drawAggregation method
-        if (startClass != null && endClass != null) {
-            System.out.println("Start Class name: " + startClass.getName());
-            System.out.println("End Class name: " + endClass.getName());
-
-            if (startClass instanceof TextBox || endClass instanceof TextBox) {
-                System.out.println("One or both components are of type TextBox");
-                return;
-            }
-
-            // Draw the line
-            Line line = new Line(
-                    startClass.getInitialPoint().getX(), startClass.getInitialPoint().getY(),
-                    endClass.getInitialPoint().getX(), endClass.getInitialPoint().getY()
-            );
-            line.setStrokeWidth(1.0);
-            drawingPane.getChildren().add(line);
-
-            // Calculate diamond coordinates
-            double diamondSize = 10; // Adjust as needed for the diamond size
-            double startX = line.getEndX();
-            double startY = line.getEndY();
-            double endX = line.getStartX();
-            double endY = line.getStartY();
-
-            double angle = Math.atan2(startY - endY, startX - endX);
-            double sin = Math.sin(angle);
-            double cos = Math.cos(angle);
-
-            // Points for the diamond (4 points)
-            double x1 = startX - diamondSize * cos;
-            double y1 = startY - diamondSize * sin;
-
-            double x2 = x1 - diamondSize * sin;
-            double y2 = y1 + diamondSize * cos;
-
-            double x3 = x1 + diamondSize * sin;
-            double y3 = y1 - diamondSize * cos;
-
-            double x4 = startX - 2 * diamondSize * cos;
-            double y4 = startY - 2 * diamondSize * sin;
-
-            // Create the diamond shape
-            Polygon diamond = new Polygon(
-                    startX, startY,  // Tip of the diamond (closest to end class)
-                    x2, y2,          // Left point
-                    x4, y4,          // Bottom point (opposite tip)
-                    x3, y3           // Right point
-            );
-            diamond.setFill(Color.WHITE); // Fill the diamond with white
-            diamond.setStroke(Color.BLACK); // Black outline for the diamond
-            diamond.setStrokeWidth(2);
-
-            // Add the diamond to the pane
-            drawingPane.getChildren().add(diamond);
-
-            // Add other components (aggregation object, text labels, etc.)
-            Aggregation aggregation = new Aggregation(classDiagram.getUpcomingComponentID(), initialPoint.getX(), initialPoint.getY(), startClass, endClass);
-            classDiagram.addComponent(aggregation);
-
-            elementMap.put(line, aggregation);
-
-            Text aggregationText = new Text(aggregation.getName());
-            aggregationText.setX((aggregation.getStartClass().getX() + aggregation.getEndClass().getX()) / 2);
-            aggregationText.setY((aggregation.getStartClass().getY() + aggregation.getEndClass().getY()) / 2 - 10);
-            drawingPane.getChildren().add(aggregationText);
-
-            Text startMultiplicityText;
-            if(aggregation.getStartInitialMultiplicity().isEmpty() || aggregation.getStartEndMultiplicity().isEmpty()){
-                startMultiplicityText = new Text("");
-            } else {
-                startMultiplicityText = new Text(aggregation.getStartInitialMultiplicity()+".."+aggregation.getStartEndMultiplicity());
-            }
-
-            startMultiplicityText.setX(aggregation.getStartClass().getX() - 15);
-            startMultiplicityText.setY(aggregation.getStartClass().getY() - 5);
-            drawingPane.getChildren().add(startMultiplicityText);
-
-            Text endMultiplicityText;
-            if(aggregation.getEndStartMultiplicity().isEmpty() || aggregation.getEndEndMultiplicity().isEmpty()){
-                endMultiplicityText = new Text("");
-            } else {
-                endMultiplicityText = new Text(aggregation.getEndStartMultiplicity()+".."+aggregation.getEndEndMultiplicity());
-            }
-
-            endMultiplicityText.setX(aggregation.getEndClass().getX() + 5);
-            endMultiplicityText.setY(aggregation.getEndClass().getY() - 5);
-            drawingPane.getChildren().add(endMultiplicityText);
-
-            // Updating the model explorer
-            TreeItem<String> currentClassDiagramTreeItem = projectPageController.getModelTreeItemByName(classDiagram.getModelName());
-            if (currentClassDiagramTreeItem == null) {
-                System.out.println("Class TreeItem is null, can't add a new treeItem to it!");
-            } else {
-                System.out.println("TreeItem with class name: " + currentClassDiagramTreeItem.getValue() + " found!");
-                TreeItem<String> newComponentTreeItem = new TreeItem<>(aggregation.getName() + " (" + aggregation.getId() + ")");
-                currentClassDiagramTreeItem.getChildren().add(newComponentTreeItem);
-            }
-        } else {
-            showWarning("Aggregation Error", "Both endpoints must be inside a class.");
-        }
-    }
-    
-    private void drawComposition(Point initialPoint, Point finalPoint){
-        System.out.println("drawing composition");
-        activeTool = null;
-        System.out.println("initial point: x = "+initialPoint.getX() +  ", y =  " + initialPoint.getY());
-        System.out.println("final point: x = "+finalPoint.getX() +  ", y =  " + finalPoint.getY());
-        if(initialPoint==null){
-            System.out.println("initial point is null!");
-            //return;
-        }
-
-        if(finalPoint==null){
-            System.out.println("final point is null!");
-            //return;
-        }
-
-        Component startClass = getClassAtPoint(initialPoint);
-        Component endClass = getClassAtPoint(finalPoint);
-        if(startClass==null){
-            System.out.println("start class is null!");
-        }
-
-        if(endClass==null){
-            System.out.println("end class is null!");
-        }
-
-        if(initialPoint==null || finalPoint==null ||startClass==null || endClass==null){
-            return;
-        }
-
-        //search if both the start and end classes already have an association
-        boolean compositionExists = hasComposition(startClass, endClass);
-        if(compositionExists){
-            System.out.println("There is already a composition between the two classes");
-            return;
-        }
-
-        // Inside your drawAggregation method
-        if (startClass != null && endClass != null) {
-            System.out.println("Start Class name: " + startClass.getName());
-            System.out.println("End Class name: " + endClass.getName());
-
-            if (startClass instanceof TextBox || endClass instanceof TextBox) {
-                System.out.println("One or both components are of type TextBox");
-                return;
-            }
-
-            // Draw the line
-            Line line = new Line(
-                    startClass.getInitialPoint().getX(), startClass.getInitialPoint().getY(),
-                    endClass.getInitialPoint().getX(), endClass.getInitialPoint().getY()
-            );
-            line.setStrokeWidth(1.0);
-            drawingPane.getChildren().add(line);
-
-            // Calculate diamond coordinates
-            double diamondSize = 10; // Adjust as needed for the diamond size
-            double startX = line.getEndX();
-            double startY = line.getEndY();
-            double endX = line.getStartX();
-            double endY = line.getStartY();
-
-            double angle = Math.atan2(startY - endY, startX - endX);
-            double sin = Math.sin(angle);
-            double cos = Math.cos(angle);
-
-            // Points for the diamond (4 points)
-            double x1 = startX - diamondSize * cos;
-            double y1 = startY - diamondSize * sin;
-
-            double x2 = x1 - diamondSize * sin;
-            double y2 = y1 + diamondSize * cos;
-
-            double x3 = x1 + diamondSize * sin;
-            double y3 = y1 - diamondSize * cos;
-
-            double x4 = startX - 2 * diamondSize * cos;
-            double y4 = startY - 2 * diamondSize * sin;
-
-            // Create the diamond shape
-            Polygon diamond = new Polygon(
-                    startX, startY,  // Tip of the diamond (closest to end class)
-                    x2, y2,          // Left point
-                    x4, y4,          // Bottom point (opposite tip)
-                    x3, y3           // Right point
-            );
-            diamond.setFill(Color.BLACK); // Fill the diamond with white
-            diamond.setStroke(Color.BLACK); // Black outline for the diamond
-            diamond.setStrokeWidth(2);
-
-            // Add the diamond to the pane
-            drawingPane.getChildren().add(diamond);
-
-            // Add other components (aggregation object, text labels, etc.)
-            Composition composition = new Composition(classDiagram.getUpcomingComponentID(), initialPoint.getX(), initialPoint.getY(), startClass, endClass);
-            classDiagram.addComponent(composition);
-
-            elementMap.put(line, composition);
-
-            Text compositionText = new Text(composition.getName());
-            compositionText.setX((composition.getStartClass().getX() + composition.getEndClass().getX()) / 2);
-            compositionText.setY((composition.getStartClass().getY() + composition.getEndClass().getY()) / 2 - 10);
-            drawingPane.getChildren().add(compositionText);
-
-            Text startMultiplicityText;
-            if(composition.getStartInitialMultiplicity().isEmpty() || composition.getStartEndMultiplicity().isEmpty()){
-                startMultiplicityText = new Text("");
-            } else {
-                startMultiplicityText = new Text(composition.getStartInitialMultiplicity()+".."+composition.getStartEndMultiplicity());
-            }
-
-            startMultiplicityText.setX(composition.getStartClass().getX() - 15);
-            startMultiplicityText.setY(composition.getStartClass().getY() - 5);
-            drawingPane.getChildren().add(startMultiplicityText);
-
-            Text endMultiplicityText;
-            if(composition.getEndStartMultiplicity().isEmpty() || composition.getEndEndMultiplicity().isEmpty()){
-                endMultiplicityText = new Text("");
-            } else {
-                endMultiplicityText = new Text(composition.getEndStartMultiplicity()+".."+composition.getEndEndMultiplicity());
-            }
-
-            endMultiplicityText.setX(composition.getEndClass().getX() + 5);
-            endMultiplicityText.setY(composition.getEndClass().getY() - 5);
-            drawingPane.getChildren().add(endMultiplicityText);
-
-            // Updating the model explorer
-            TreeItem<String> currentClassDiagramTreeItem = projectPageController.getModelTreeItemByName(classDiagram.getModelName());
-            if (currentClassDiagramTreeItem == null) {
-                System.out.println("Class TreeItem is null, can't add a new treeItem to it!");
-            } else {
-                System.out.println("TreeItem with class name: " + currentClassDiagramTreeItem.getValue() + " found!");
-                TreeItem<String> newComponentTreeItem = new TreeItem<>(composition.getName() + " (" + composition.getId() + ")");
-                currentClassDiagramTreeItem.getChildren().add(newComponentTreeItem);
-            }
-        } else {
-            showWarning("Aggregation Error", "Both endpoints must be inside a class.");
+        if(!IsComponentInElementMap(interface_)) {
+            elementMap.put(classBox, interface_);
         }
     }
 
-    private void drawDashedLine(Point initialPoint, Point finalPoint) {
-        System.out.println("drawing dashed line");
-        activeTool = null;
-        System.out.println("initial point: x = "+initialPoint.getX() +  ", y =  " + initialPoint.getY());
-        System.out.println("final point: x = "+finalPoint.getX() +  ", y =  " + finalPoint.getY());
-        if(initialPoint==null){
-            System.out.println("initial point is null!");
-            //return;
-        }
-
-        if(finalPoint==null){
-            System.out.println("final point is null!");
-            //return;
-        }
-
-        Component startClass = getClassAtPoint(initialPoint);
-        Component endClass = getClassAtPoint(finalPoint);
-        if(startClass==null){
-            System.out.println("start class is null!");
-        }
-
-        if(endClass==null){
-            System.out.println("end class is null!");
-        }
-
-        if(initialPoint==null || finalPoint==null ||startClass==null||endClass==null){
-            return;
-        }
-
-        if (startClass != null && endClass != null) {
-            System.out.println("Start Class name: "+startClass.getName());
-            System.out.println("End Class name: "+endClass.getName());
-
-            if(startClass instanceof Class && endClass instanceof Class){
-                System.out.println("Both components are of type class!");
-                return;
-            }
-
-            Line line = new Line(
-                    startClass.getInitialPoint().getX(), startClass.getInitialPoint().getY(),
-                    endClass.getInitialPoint().getX(), endClass.getInitialPoint().getY()
-            );
-            line.setStrokeWidth(1.0);
-            line.getStrokeDashArray().addAll(5.0, 5.0);
-            drawingPane.getChildren().add(line);
-
-            DashedLine dashedLine = new DashedLine(classDiagram.getUpcomingComponentID(), initialPoint.getX(), initialPoint.getY(), startClass, endClass);
-            classDiagram.addComponent(dashedLine);
-
-            elementMap.put(line, dashedLine);
-
-            //updating the model explorer
-            TreeItem<String> currentClassDiagramTreeItem = projectPageController.getModelTreeItemByName(classDiagram.getModelName());
-            if(currentClassDiagramTreeItem==null){
-                System.out.println("Class TreeItem is null, can't add a new treeItem to it!");
-            } else {
-                System.out.println("TreeItem with class name: "+currentClassDiagramTreeItem.getValue()+" found!");
-                TreeItem<String> newComponentTreeItem = new TreeItem<>(dashedLine.getName()+" ("+dashedLine.getId()+")");
-                currentClassDiagramTreeItem.getChildren().add(newComponentTreeItem);
-            }
-        } else {
-            showWarning("DashedLine Error", "Both endpoints must be inside a class.");
-        }
-    }
-
-    public boolean hasAssociation(Component start, Component end){
-        for (Map.Entry<Node, Object> entry : elementMap.entrySet()) {
-            Object object = entry.getValue();
-            if(object instanceof Association){
-                Association association = (Association) object;
-                if(association.getStartClass() == start || association.getStartClass() == end){
-                    if(association.getEndClass() == start || association.getEndClass() == end){
-                        return true;
-                    }
-                }
-            }
-        }
-
-        return false;
-    }
-
-    public boolean hasInheritance(Component start, Component end){
-        for (Map.Entry<Node, Object> entry : elementMap.entrySet()) {
-            Object object = entry.getValue();
-            if(object instanceof Inheritance){
-                Inheritance inheritance = (Inheritance) object;
-                if(inheritance.getStartClass() == start || inheritance.getStartClass() == end){
-                    if(inheritance.getEndClass() == start || inheritance.getEndClass() == end){
-                        return true;
-                    }
-                }
-            }
-        }
-
-        return false;
-    }
-
-    public boolean hasAggregation(Component start, Component end){
-        for (Map.Entry<Node, Object> entry : elementMap.entrySet()) {
-            Object object = entry.getValue();
-            if(object instanceof Aggregation){
-                Aggregation aggregation = (Aggregation) object;
-                if(aggregation.getStartClass() == start || aggregation.getStartClass() == end){
-                    if(aggregation.getEndClass() == start || aggregation.getEndClass() == end){
-                        return true;
-                    }
-                }
-            }
-        }
-
-        return false;
-    }
-
-    public boolean hasComposition(Component start, Component end){
-        for (Map.Entry<Node, Object> entry : elementMap.entrySet()) {
-            Object object = entry.getValue();
-            if(object instanceof Composition){
-                Composition composition = (Composition) object;
-                if(composition.getStartClass() == start || composition.getStartClass() == end){
-                    if(composition.getEndClass() == start || composition.getEndClass() == end){
-                        return true;
-                    }
-                }
-            }
-        }
-
-        return false;
-    }
-
-    public boolean hasDashedLine(Component start, Component end){
-        for (Map.Entry<Node, Object> entry : elementMap.entrySet()) {
-            Node node = entry.getKey();
-            Object object = entry.getValue();
-            if(object instanceof DashedLine){
-                DashedLine dashedLine = (DashedLine) object;
-                if(dashedLine.getStartClass() == start || dashedLine.getStartClass() == end){
-                    if(dashedLine.getEndClass() == start || dashedLine.getEndClass() == end){
-                        return true;
-                    }
-                }
-            }
-        }
-
-        return false;
-    }
-
-    public void drawTextBox(double x, double y) {
+    public void drawTextBox(Component textBox, double x, double y) {
         System.out.println("drawing TextBox");
-        activeTool = null;
-        TextBox textBox = new TextBox(classDiagram.getUpcomingComponentID(), x, y);
-        double initialWidth = 100;
-        double initialHeight = 100;
+        Point initialPoint;
+        if(textBox == null){
+            initialPoint = new Point(x, y);
+            textBox = new TextBox(classDiagram.getUpcomingComponentID(), x, y);
 
-        VBox textVBox = new VBox();
-        textVBox.setLayoutX(x);
-        textVBox.setLayoutY(y);
-        textVBox.setStyle("-fx-border-color: black; -fx-border-width: 1; -fx-padding: 5; -fx-background-color: #F8EBB5;");
-
-        Label textBoxLabel = new Label(textBox.getText());
-        textBoxLabel.setWrapText(true);
-        textBoxLabel.setMaxWidth(initialWidth - 10);
-        textBoxLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: black;");
-        textVBox.getChildren().add(textBoxLabel);
-
-        textVBox.setMinWidth(initialWidth);
-        textVBox.setMinHeight(initialHeight);
-
-        drawingPane.getChildren().add(textVBox);
-        classDiagram.addComponent(textBox);
-
-        //Update the model explorer (if necessary)
-        TreeItem<String> currentClassDiagramTreeItem = projectPageController.getModelTreeItemByName(classDiagram.getModelName());
-        if (currentClassDiagramTreeItem == null) {
-            System.out.println("TextBox TreeItem is null, can't add a new treeItem to it!");
+            addComponentToListAndUpdateTree(textBox);
         } else {
-            System.out.println("TreeItem with class name: " + currentClassDiagramTreeItem.getValue() + " found!");
-            TreeItem<String> newComponentTreeItem = new TreeItem<>(textBox.getName() + " (" + textBox.getId() + ")");
-            currentClassDiagramTreeItem.getChildren().add(newComponentTreeItem);
+            initialPoint = new Point(textBox.getX(), textBox.getY());
         }
 
-        elementMap.put(textVBox, textBox);
-    }
-
-    public void redrawTextBox(TextBox textBox){
-        System.out.println("redrawTextBox called");
-        //activeTool = null;
-        Point initialPoint = new Point(textBox.getInitialPoint().getX(), textBox.getInitialPoint().getY());
         double initialWidth = 100;
         double initialHeight = 100;
 
@@ -1080,7 +366,7 @@ public class ClassDiagramController {
         textVBox.setLayoutY(initialPoint.getY());
         textVBox.setStyle("-fx-border-color: black; -fx-border-width: 1; -fx-padding: 5; -fx-background-color: #F8EBB5;");
 
-        Label textBoxLabel = new Label(textBox.getText());
+        Label textBoxLabel = new Label(((TextBox)textBox).getText());
         textBoxLabel.setWrapText(true);
         textBoxLabel.setMaxWidth(initialWidth - 10);
         textBoxLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: black;");
@@ -1090,9 +376,294 @@ public class ClassDiagramController {
         textVBox.setMinHeight(initialHeight);
 
         drawingPane.getChildren().add(textVBox);
-        elementMap.put(textVBox, textBox);
+
+        if(!IsComponentInElementMap(textBox)){
+            elementMap.put(textVBox, textBox);
+        }
     }
 
+    private void drawAssociation(BusinessLayer.Models.Components.ClassDiagramComponents.Line association, Point initialPoint, Point finalPoint) {
+        if(association==null) {
+            //make a new line of type association if association is null
+            // (only the first time)
+            association = drawLineFuncTopUtil(association, LineType.ASSOCIATION, initialPoint, finalPoint);
+        }
+
+        //if the attempt at creating a new association line failed, return
+        if(association==null){
+            return;
+        }
+
+        Line line = drawLine(association, false);
+
+        drawLineFuncBottomUtil(line, association);
+    }
+
+    private void drawInheritance(BusinessLayer.Models.Components.ClassDiagramComponents.Line inheritance, Point initialPoint, Point finalPoint){
+        if(inheritance==null) {
+            inheritance = drawLineFuncTopUtil(inheritance, LineType.INHERITANCE, initialPoint, finalPoint);
+        }
+
+        if(inheritance==null){
+            return;
+        }
+
+        Line line = drawLine(inheritance, false);
+        drawArrowHead(line);
+        drawLineFuncBottomUtil(line, inheritance);
+    }
+
+    private void drawAggregation(BusinessLayer.Models.Components.ClassDiagramComponents.Line aggregation, Point initialPoint, Point finalPoint){
+        if(aggregation==null) {
+            aggregation = drawLineFuncTopUtil(aggregation, LineType.AGGREGATION, initialPoint, finalPoint);
+        }
+
+        if(aggregation==null){
+            return;
+        }
+
+        // Draw the line
+        Line line = drawLine(aggregation, false);
+
+        drawDiamond(line, false);
+
+        drawLineFuncBottomUtil(line, aggregation);
+    }
+
+    private void drawComposition(BusinessLayer.Models.Components.ClassDiagramComponents.Line composition, Point initialPoint, Point finalPoint){
+        if(composition==null) {
+            composition = drawLineFuncTopUtil(composition, LineType.COMPOSITION, initialPoint, finalPoint);
+        }
+
+        if(composition==null){
+            return;
+        }
+
+        // Draw the line
+        Line line = drawLine(composition, false);
+        drawDiamond(line, true);
+
+        drawLineFuncBottomUtil(line, composition);
+    }
+
+    private void drawDashedLine(BusinessLayer.Models.Components.ClassDiagramComponents.Line dashedLine, Point initialPoint, Point finalPoint) {
+        if(dashedLine==null){
+            dashedLine = drawLineFuncTopUtil(dashedLine, LineType.DASHED, initialPoint, finalPoint);
+        }
+
+        if(dashedLine==null){
+            return;
+        }
+
+        Line line = drawLine(dashedLine, true);
+
+        drawLineFuncBottomUtil(line, dashedLine);
+    }
+
+    private void showText(BusinessLayer.Models.Components.ClassDiagramComponents.Line line){
+        Text text = new Text(line.getName());
+        text.setX((line.getStartComp().getX() + line.getEndComp().getX()) / 2);
+        text.setY((line.getStartComp().getY() + line.getEndComp().getY()) / 2 - 10);
+        drawingPane.getChildren().add(text);
+    }
+
+    private void showMultiplicity(Multiplicity multiplicity, Component referenceComponent){
+        Text multiplicityText;
+        if(multiplicity.getFirst().isEmpty() || multiplicity.getSecond().isEmpty()){
+            multiplicityText = new Text("");
+        } else {
+            multiplicityText = new Text(multiplicity.getFirst()+".."+multiplicity.getSecond());
+        }
+
+        multiplicityText.setX(referenceComponent.getX() + 5);
+        multiplicityText.setY(referenceComponent.getY() - 5);
+        drawingPane.getChildren().add(multiplicityText);
+    }
+
+    private void drawArrowHead(Line line){
+        // Calculate arrowhead coordinates
+        double arrowLength = 15; // Length of the arrowhead
+        double arrowWidth = 7; // Width of the arrowhead
+        double startX = line.getEndX();
+        double startY = line.getEndY();
+        double endX = line.getStartX();
+        double endY = line.getStartY();
+
+        double angle = Math.atan2(startY - endY, startX - endX);
+        double sin = Math.sin(angle);
+        double cos = Math.cos(angle);
+
+        // Points for the arrowhead
+        double x1 = startX - arrowLength * cos + arrowWidth * sin;
+        double y1 = startY - arrowLength * sin - arrowWidth * cos;
+        double x2 = startX - arrowLength * cos - arrowWidth * sin;
+        double y2 = startY - arrowLength * sin + arrowWidth * cos;
+
+        // Create the arrowhead
+        Polygon arrowHead = new Polygon();
+        arrowHead.getPoints().addAll(
+                startX, startY,
+                x1, y1,
+                x2, y2
+        );
+        arrowHead.setStyle("-fx-fill: black;");
+        drawingPane.getChildren().add(arrowHead);
+    }
+
+    private BusinessLayer.Models.Components.ClassDiagramComponents.Line drawLineFuncTopUtil(BusinessLayer.Models.Components.ClassDiagramComponents.Line line, LineType lineType, Point initialPoint, Point finalPoint){
+        System.out.println("drawing "+lineType.getType());
+        System.out.println("initial point: x = "+initialPoint.getX() +  ", y =  " + initialPoint.getY());
+        System.out.println("final point: x = "+finalPoint.getX() +  ", y =  " + finalPoint.getY());
+        if(initialPoint==null || finalPoint==null){
+            System.out.println("initial and or final point is null!");
+            return null;
+        }
+
+        Component startComp = getClassAtPoint(initialPoint);
+        Component endComp = getClassAtPoint(finalPoint);
+
+        if(startComp==null || endComp == null){
+            System.out.println("start or end component is null!");
+            return null;
+        }
+
+        if(Objects.equals(lineType.getType(), "DashedLine")){
+            //if both the start and end components are not texboxes, then don't put a dashed line between them
+            if(!(startComp instanceof TextBox) && !(endComp instanceof TextBox)){
+                return null;
+            }
+        } else {
+            if(startComp instanceof TextBox || endComp instanceof TextBox){
+                System.out.println("One or both components are of type TextBox");
+                return null;
+            }
+        }
+
+        boolean linkExists = hasLink(startComp, endComp);
+        if(linkExists){
+            System.out.println("There is already a link between the two classes");
+            return null;
+        }
+
+        line = new BusinessLayer.Models.Components.ClassDiagramComponents.Line(
+                classDiagram.getUpcomingComponentID(),
+                initialPoint.getX(), initialPoint.getY(),
+                lineType,
+                startComp, endComp
+        );
+
+        addComponentToListAndUpdateTree(line);
+
+        return line;
+    }
+
+    private void drawLineFuncBottomUtil(Line line, BusinessLayer.Models.Components.ClassDiagramComponents.Line line_){
+        showText(line_);
+        showMultiplicity(line_.getStartMultiplicity(), line_.getStartComp());
+        showMultiplicity(line_.getEndMultiplicity(), line_.getEndComp());
+
+        if(!IsComponentInElementMap(line_)){
+            elementMap.put(line, line_);
+        }
+    }
+
+    public void drawDiamond(Line line, boolean fillDiamond){
+        // Calculate diamond coordinates
+        double diamondSize = 10;
+        double startX = line.getEndX();
+        double startY = line.getEndY();
+        double endX = line.getStartX();
+        double endY = line.getStartY();
+
+        double angle = Math.atan2(startY - endY, startX - endX);
+        double sin = Math.sin(angle);
+        double cos = Math.cos(angle);
+
+        // Points for the diamond (4 points)
+        double x1 = startX - diamondSize * cos;
+        double y1 = startY - diamondSize * sin;
+
+        double x2 = x1 - diamondSize * sin;
+        double y2 = y1 + diamondSize * cos;
+
+        double x3 = x1 + diamondSize * sin;
+        double y3 = y1 - diamondSize * cos;
+
+        double x4 = startX - 2 * diamondSize * cos;
+        double y4 = startY - 2 * diamondSize * sin;
+
+        // Create the diamond shape
+        Polygon diamond = new Polygon(
+                startX, startY,  // Tip of the diamond (closest to end class)
+                x2, y2,          // Left point
+                x4, y4,          // Bottom point (opposite tip)
+                x3, y3           // Right point
+        );
+        if(fillDiamond){
+            diamond.setFill(Color.BLACK); // Fill the diamond with white
+        } else {
+            diamond.setFill(Color.WHITE);
+        }
+        diamond.setStroke(Color.BLACK); // Black outline for the diamond
+        diamond.setStrokeWidth(2);
+
+        // Add the diamond to the pane
+        drawingPane.getChildren().add(diamond);
+    }
+
+    public Line drawLine(BusinessLayer.Models.Components.ClassDiagramComponents.Line line_, Boolean dashed){
+        Line line = new Line(
+                line_.getStartComp().getX(),
+                line_.getStartComp().getY(),
+                line_.getEndComp().getX(),
+                line_.getEndComp().getY()
+        );
+        line.setStrokeWidth(1.0);
+        if(dashed){
+            line.getStrokeDashArray().addAll(5.0, 5.0);
+        }
+        drawingPane.getChildren().add(line);
+        return line;
+    }
+
+    public boolean hasLink(Component start, Component end){
+        for (Map.Entry<Node, Object> entry : elementMap.entrySet()) {
+            Object object = entry.getValue();
+            if(object instanceof BusinessLayer.Models.Components.ClassDiagramComponents.Line){
+                BusinessLayer.Models.Components.ClassDiagramComponents.Line line = (BusinessLayer.Models.Components.ClassDiagramComponents.Line) object;
+                if(line.getStartComp() == start || line.getStartComp() == end){
+                    if(line.getEndComp() == start || line.getEndComp() == end){
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private void addComponentToListAndUpdateTree(Component component){
+        classDiagram.addComponent(component);
+
+        //updating the model explorer
+        TreeItem<String> currentClassDiagramTreeItem = projectPageController.getModelTreeItemByName(classDiagram.getModelName());
+        if(currentClassDiagramTreeItem==null){
+            System.out.println("Class TreeItem is null, can't add a new treeItem to it!");
+        } else {
+            System.out.println("TreeItem with class name: "+currentClassDiagramTreeItem.getValue()+" found!");
+            TreeItem<String> newComponentTreeItem = new TreeItem<>(component.getName()+" ("+component.getId()+")");
+            currentClassDiagramTreeItem.getChildren().add(newComponentTreeItem);
+        }
+    }
+
+    void printElementMap(){
+        System.out.print("Element Map: ");
+        for(Map.Entry<Node, Object> entry: elementMap.entrySet()){
+            Object object = entry.getValue();
+            Component component = (Component) object;
+            System.out.print(component.getId()+", ");
+        }
+    }
 
     /*
      *
@@ -1673,177 +1244,38 @@ public class ClassDiagramController {
         for(Component component : classDiagram.getComponents()){
             System.out.println("Class diagram component with id: "+component.getId()+", called in redrawCanvas");
             if(component instanceof Class){
-                redrawClass((Class) component);
+                drawClass(component, 0, 0);
             } else if(component instanceof Interface){
-                redrawInterface((Interface) component);
-            } else if(component instanceof Association){
-                Association association = (Association) component;
-                redrawAssociation(association);
-
-                Text associationText = new Text(association.getName());
-                associationText.setX((association.getStartClass().getX() + association.getEndClass().getX()) / 2);
-                associationText.setY((association.getStartClass().getY() + association.getEndClass().getY()) / 2 - 10);
-                drawingPane.getChildren().add(associationText);
-
-                Text startMultiplicityText;
-                if(association.getStartInitialMultiplicity().isEmpty() || association.getStartEndMultiplicity().isEmpty()){
-                    startMultiplicityText = new Text("");
-                } else {
-                    startMultiplicityText = new Text(association.getStartInitialMultiplicity()+".."+association.getStartEndMultiplicity());
-                }
-
-                startMultiplicityText.setX(association.getStartClass().getX() - 15);
-                startMultiplicityText.setY(association.getStartClass().getY() - 5);
-                drawingPane.getChildren().add(startMultiplicityText);
-
-                Text endMultiplicityText;
-                if(association.getEndStartMultiplicity().isEmpty() || association.getEndEndMultiplicity().isEmpty()){
-                    endMultiplicityText = new Text("");
-                } else {
-                    endMultiplicityText = new Text(association.getEndStartMultiplicity()+".."+association.getEndEndMultiplicity());
-                }
-
-                endMultiplicityText.setX(association.getEndClass().getX() + 5);
-                endMultiplicityText.setY(association.getEndClass().getY() - 5);
-                drawingPane.getChildren().add(endMultiplicityText);
-
+                drawInterface(component, 0, 0);
             } else if(component instanceof TextBox){
-                redrawTextBox((TextBox) component);
-            } else if(component instanceof DashedLine){
-                redrawDashedLine((DashedLine) component);
-            } else if(component instanceof Inheritance){
-                Inheritance inheritance = (Inheritance) component;
-                redrawInheritance((Inheritance) component);
-
-                Text inheritanceText = new Text(inheritance.getName());
-                inheritanceText.setX((inheritance.getStartClass().getX() + inheritance.getEndClass().getX()) / 2);
-                inheritanceText.setY((inheritance.getStartClass().getY() + inheritance.getEndClass().getY()) / 2 - 10);
-                drawingPane.getChildren().add(inheritanceText);
-
-                Text startMultiplicityText;
-                if(inheritance.getStartInitialMultiplicity().isEmpty() || inheritance.getStartEndMultiplicity().isEmpty()){
-                    startMultiplicityText = new Text("");
-                } else {
-                    startMultiplicityText = new Text(inheritance.getStartInitialMultiplicity()+".."+inheritance.getStartEndMultiplicity());
+                drawTextBox(component, 0, 0);
+            } else if(component instanceof BusinessLayer.Models.Components.ClassDiagramComponents.Line){
+                BusinessLayer.Models.Components.ClassDiagramComponents.Line line = (BusinessLayer.Models.Components.ClassDiagramComponents.Line) component;
+                if(Objects.equals(line.getType(), "Association")){
+                    drawAssociation(line, new Point(0, 0), new Point(0, 0));
+                } else if(Objects.equals(line.getType(), "Inheritance")){
+                    drawInheritance(line, new Point(0, 0), new Point(0, 0));
+                } else if(Objects.equals(line.getType(), "Aggregation")){
+                    drawAggregation(line, new Point(0, 0), new Point(0, 0));
+                } else if(Objects.equals(line.getType(), "Composition")){
+                    drawComposition(line, new Point(0, 0), new Point(0, 0));
+                } else if(Objects.equals(line.getType(), "DashedLine")){
+                    drawDashedLine(line, new Point(0, 0), new Point(0, 0));
                 }
-
-                startMultiplicityText.setX(inheritance.getStartClass().getX() - 15);
-                startMultiplicityText.setY(inheritance.getStartClass().getY() - 5);
-                drawingPane.getChildren().add(startMultiplicityText);
-
-                Text endMultiplicityText;
-                if(inheritance.getEndStartMultiplicity().isEmpty() || inheritance.getEndEndMultiplicity().isEmpty()){
-                    endMultiplicityText = new Text("");
-                } else {
-                    endMultiplicityText = new Text(inheritance.getEndStartMultiplicity()+".."+inheritance.getEndEndMultiplicity());
-                }
-
-                endMultiplicityText.setX(inheritance.getEndClass().getX() + 5);
-                endMultiplicityText.setY(inheritance.getEndClass().getY() - 5);
-                drawingPane.getChildren().add(endMultiplicityText);
-
-            } else if(component instanceof Aggregation){
-                Aggregation aggregation = (Aggregation) component;
-                redrawAggregation(aggregation);
-
-                Text aggregationText = new Text(aggregation.getName());
-                aggregationText.setX((aggregation.getStartClass().getX() + aggregation.getEndClass().getX()) / 2);
-                aggregationText.setY((aggregation.getStartClass().getY() + aggregation.getEndClass().getY()) / 2 - 10);
-                drawingPane.getChildren().add(aggregationText);
-
-                Text startMultiplicityText;
-                if(aggregation.getStartInitialMultiplicity().isEmpty() || aggregation.getStartEndMultiplicity().isEmpty()){
-                    startMultiplicityText = new Text("");
-                } else {
-                    startMultiplicityText = new Text(aggregation.getStartInitialMultiplicity()+".."+aggregation.getStartEndMultiplicity());
-                }
-
-                startMultiplicityText.setX(aggregation.getStartClass().getX() - 15);
-                startMultiplicityText.setY(aggregation.getStartClass().getY() - 5);
-                drawingPane.getChildren().add(startMultiplicityText);
-
-                Text endMultiplicityText;
-                if(aggregation.getEndStartMultiplicity().isEmpty() || aggregation.getEndEndMultiplicity().isEmpty()){
-                    endMultiplicityText = new Text("");
-                } else {
-                    endMultiplicityText = new Text(aggregation.getEndStartMultiplicity()+".."+aggregation.getEndEndMultiplicity());
-                }
-
-                endMultiplicityText.setX(aggregation.getEndClass().getX() + 5);
-                endMultiplicityText.setY(aggregation.getEndClass().getY() - 5);
-                drawingPane.getChildren().add(endMultiplicityText);
-
-            } else if(component instanceof Composition){
-                Composition composition = (Composition) component;
-                redrawComposition((Composition) component);
-
-                Text compositionText = new Text(composition.getName());
-                compositionText.setX((composition.getStartClass().getX() + composition.getEndClass().getX()) / 2);
-                compositionText.setY((composition.getStartClass().getY() + composition.getEndClass().getY()) / 2 - 10);
-                drawingPane.getChildren().add(compositionText);
-
-                Text startMultiplicityText;
-                if(composition.getStartInitialMultiplicity().isEmpty() || composition.getStartEndMultiplicity().isEmpty()){
-                    startMultiplicityText = new Text("");
-                } else {
-                    startMultiplicityText = new Text(composition.getStartInitialMultiplicity()+".."+composition.getStartEndMultiplicity());
-                }
-
-                startMultiplicityText.setX(composition.getStartClass().getX() - 15);
-                startMultiplicityText.setY(composition.getStartClass().getY() - 5);
-                drawingPane.getChildren().add(startMultiplicityText);
-
-                Text endMultiplicityText;
-                if(composition.getEndStartMultiplicity().isEmpty() || composition.getEndEndMultiplicity().isEmpty()){
-                    endMultiplicityText = new Text("");
-                } else {
-                    endMultiplicityText = new Text(composition.getEndStartMultiplicity()+".."+composition.getEndEndMultiplicity());
-                }
-
-                endMultiplicityText.setX(composition.getEndClass().getX() + 5);
-                endMultiplicityText.setY(composition.getEndClass().getY() - 5);
-                drawingPane.getChildren().add(endMultiplicityText);
             }
         }
+
+        printElementMap();
+        System.out.println("");
     }
 
-    private void redrawClass(Class claz) {
-        System.out.println("redrawClass called!");
-        Point initialPoint = new Point(claz.getInitialPoint().getX(), claz.getInitialPoint().getY());
-        double initialWidth = 120;
-        VBox classBox = new VBox();
-        classBox.setLayoutX(initialPoint.getX());
-        classBox.setLayoutY(initialPoint.getY());
-        classBox.setStyle("-fx-border-color: black; -fx-border-width: 1; -fx-padding: 0; -fx-background-color: #F5E49C;");
-        Label classNameLabel = new Label(claz.getClassName());
-        classNameLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
-        VBox classNameBox = new VBox(classNameLabel);
-        classNameBox.setMinWidth(initialWidth);
-        classNameBox.setStyle("-fx-border-color: black; -fx-border-width: 1; -fx-padding: 5;");
-        VBox attributesBox = new VBox();
-        attributesBox.setMinWidth(initialWidth);
-        attributesBox.setStyle("-fx-border-color: black; -fx-border-width: 1; -fx-padding: 5;");
-        ArrayList<Attribute> attributes = claz.getAttributes();
-        for (Attribute attribute : attributes) {
-            Label attributeLabel = new Label(attribute.toString());
-            attributesBox.getChildren().add(attributeLabel);
+    boolean IsComponentInElementMap(Component component){
+        for(Map.Entry<Node, Object> entry : elementMap.entrySet()){
+            if(component == (Component) entry.getValue()){
+                return true;
+            }
         }
-        VBox functionsBox = new VBox();
-        functionsBox.setMinWidth(initialWidth);
-        functionsBox.setStyle("-fx-border-color: black; -fx-border-width: 1; -fx-padding: 5;");
-        ArrayList<Function> functions = claz.getFunctions();
-        for (Function function : functions) {
-            Label functionLabel = new Label(function.toString());
-            functionsBox.getChildren().add(functionLabel);
-        }
-        double maxWidth = Math.max(initialWidth, Math.max(getMaxLabelWidth(classNameBox), Math.max(getMaxLabelWidth(attributesBox), getMaxLabelWidth(functionsBox))));
-        classNameBox.setMinWidth(maxWidth);
-        attributesBox.setMinWidth(maxWidth);
-        functionsBox.setMinWidth(maxWidth);
-        classBox.getChildren().addAll(classNameBox, attributesBox, functionsBox);
-
-        drawingPane.getChildren().add(classBox);
-        elementMap.put(classBox, claz);
+        return false;
     }
 
     private double getMaxLabelWidth(VBox vbox) {
@@ -1855,340 +1287,6 @@ public class ClassDiagramController {
             }
         }
         return maxWidth + 10;
-    }
-
-    private void redrawInterface(Interface _interface) {
-        System.out.println("reDrawInterface called!");
-        Point initialPoint = new Point(_interface.getInitialPoint().getX(), _interface.getInitialPoint().getY());
-        double initialWidth = 120;
-        VBox classBox = new VBox();
-        classBox.setLayoutX(initialPoint.getX());
-        classBox.setLayoutY(initialPoint.getY());
-        classBox.setStyle("-fx-border-color: black; -fx-border-width: 1; -fx-padding: 0; -fx-background-color: #F5E49C;");
-        Label classNameLabel = new Label(_interface.getClassName());
-        Label InterfaceLable = new Label("  <<Interface>>");
-        classNameLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
-        InterfaceLable.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
-        VBox classNameBox = new VBox();
-        classNameBox.getChildren().add(InterfaceLable);
-        classNameBox.getChildren().add(classNameLabel);
-        classNameBox.setMinWidth(initialWidth);
-        classNameBox.setStyle("-fx-border-color: black; -fx-border-width: 1; -fx-padding: 5;");
-        VBox attributesBox = new VBox();
-        attributesBox.setMinWidth(initialWidth);
-        attributesBox.setStyle("-fx-border-color: black; -fx-border-width: 1; -fx-padding: 5;");
-        VBox functionsBox = new VBox();
-        functionsBox.setMinWidth(initialWidth);
-        functionsBox.setStyle("-fx-border-color: black; -fx-border-width: 1; -fx-padding: 5;");
-        ArrayList<Function> functions = _interface.getFunctions();
-        for (Function function : functions) {
-            Label functionLabel = new Label(function.toString());
-            functionsBox.getChildren().add(functionLabel);
-        }
-        double maxWidth = Math.max(initialWidth, Math.max(getMaxLabelWidth(classNameBox), Math.max(getMaxLabelWidth(attributesBox), getMaxLabelWidth(functionsBox))));
-        classNameBox.setMinWidth(maxWidth);
-        attributesBox.setMinWidth(maxWidth);
-        functionsBox.setMinWidth(maxWidth);
-        classBox.getChildren().addAll(classNameBox, attributesBox, functionsBox);
-
-        drawingPane.getChildren().add(classBox);
-        elementMap.put(classBox, _interface);
-    }
-
-    private void redrawInheritance(Inheritance inheritance) {
-        System.out.println("redrawInheritance called!");
-
-        Component startClass = inheritance.getStartClass();
-        Component endClass = inheritance.getEndClass();
-
-        if(startClass==null){
-            System.out.println("start class is null!");
-        }
-
-        if(endClass==null){
-            System.out.println("end class is null!");
-        }
-
-        if (startClass != null && endClass != null) {
-            Line line = new Line(inheritance.getStartClass().getX(), inheritance.getStartClass().getY(), inheritance.getEndClass().getX(), inheritance.getEndClass().getY());
-            line.setStartX(startClass.getInitialPoint().getX());
-            line.setStartY(startClass.getInitialPoint().getY());
-            line.setEndX(endClass.getInitialPoint().getX());
-            line.setEndY(endClass.getInitialPoint().getY());
-            if (!drawingPane.getChildren().contains(line)) {
-                drawingPane.getChildren().add(line);
-            }
-
-            // Calculate arrowhead coordinates
-            double arrowLength = 15; // Length of the arrowhead
-            double arrowWidth = 7; // Width of the arrowhead
-            double startX = line.getEndX();
-            double startY = line.getEndY();
-            double endX = line.getStartX();
-            double endY = line.getStartY();
-
-            double angle = Math.atan2(startY - endY, startX - endX);
-            double sin = Math.sin(angle);
-            double cos = Math.cos(angle);
-
-            // Points for the arrowhead
-            double x1 = startX - arrowLength * cos + arrowWidth * sin;
-            double y1 = startY - arrowLength * sin - arrowWidth * cos;
-            double x2 = startX - arrowLength * cos - arrowWidth * sin;
-            double y2 = startY - arrowLength * sin + arrowWidth * cos;
-
-            // Create the arrowhead
-            Polygon arrowHead = new Polygon();
-            arrowHead.getPoints().addAll(
-                    startX, startY,
-                    x1, y1,
-                    x2, y2
-            );
-            arrowHead.setStyle("-fx-fill: black;");
-            if(!drawingPane.getChildren().contains(arrowHead)){
-                drawingPane.getChildren().add(arrowHead);
-            }
-
-            elementMap.put(line, inheritance);
-        } else {
-            Line line = new Line(inheritance.getStartClass().getX(), inheritance.getStartClass().getY(), inheritance.getEndClass().getX(), inheritance.getEndClass().getY());
-            drawingPane.getChildren().remove(line);
-            showWarning("Redraw Error", "One or both associated classes no longer exist at their original positions.");
-        }
-    }
-
-    private void redrawAssociation(Association association) {
-        System.out.println("redrawAssociation called!");
-
-        Component startClass = association.getStartClass();
-        Component endClass = association.getEndClass();
-
-        if(startClass==null){
-            System.out.println("start class is null!");
-        }
-
-        if(endClass==null){
-            System.out.println("end class is null!");
-        }
-
-        if (startClass != null && endClass != null) {
-            Line line = new Line(association.getStartClass().getX(), association.getStartClass().getY(), association.getEndClass().getX(), association.getEndClass().getY());
-            line.setStartX(startClass.getInitialPoint().getX());
-            line.setStartY(startClass.getInitialPoint().getY());
-            line.setEndX(endClass.getInitialPoint().getX());
-            line.setEndY(endClass.getInitialPoint().getY());
-            if (!drawingPane.getChildren().contains(line)) {
-                drawingPane.getChildren().add(line);
-            }
-
-            elementMap.put(line, association);
-        } else {
-            Line line = new Line(association.getStartClass().getX(), association.getStartClass().getY(), association.getEndClass().getX(), association.getEndClass().getY());
-            drawingPane.getChildren().remove(line);
-            showWarning("Redraw Error", "One or both associated classes no longer exist at their original positions.");
-        }
-    }
-
-    public void redrawDashedLine(DashedLine dashedLine){
-        System.out.println("redrawDashedLien called!");
-
-        Component startClass = dashedLine.getStartClass();
-        Component endClass = dashedLine.getEndClass();
-        if(startClass==null){
-            System.out.println("start class is null!");
-        }
-
-        if(endClass==null){
-            System.out.println("end class is null!");
-        }
-
-        if (startClass != null && endClass != null) {
-            System.out.println("Start Class name: "+startClass.getName());
-            System.out.println("End Class name: "+endClass.getName());
-
-            Line line = new Line(dashedLine.getStartClass().getX(), dashedLine.getStartClass().getY(), dashedLine.getEndClass().getX(), dashedLine.getEndClass().getY());
-            line.setStartX(startClass.getInitialPoint().getX());
-            line.setStartY(startClass.getInitialPoint().getY());
-            line.setEndX(endClass.getInitialPoint().getX());
-            line.setEndY(endClass.getInitialPoint().getY());
-            line.setStrokeWidth(1.0);
-            line.getStrokeDashArray().addAll(5.0, 5.0);
-            if (!drawingPane.getChildren().contains(line)) {
-                drawingPane.getChildren().add(line);
-            }
-
-            elementMap.put(line, dashedLine);
-        } else {
-            Line line = new Line(dashedLine.getStartClass().getX(), dashedLine.getStartClass().getY(), dashedLine.getEndClass().getX(), dashedLine.getEndClass().getY());
-            drawingPane.getChildren().remove(line);
-            showWarning("Redraw Error", "One or both associated classes no longer exist at their original positions.");
-        }
-    }
-
-    public void redrawAggregation(Aggregation aggregation){
-        System.out.println("redrawAggregation called!");
-
-        Component startClass = aggregation.getStartClass();
-        Component endClass = aggregation.getEndClass();
-
-        if(startClass==null){
-            System.out.println("start class is null!");
-        }
-
-        if(endClass==null){
-            System.out.println("end class is null!");
-        }
-
-        // Inside your drawAggregation method
-        if (startClass != null && endClass != null) {
-            System.out.println("Start Class name: " + startClass.getName());
-            System.out.println("End Class name: " + endClass.getName());
-
-            if (startClass instanceof TextBox || endClass instanceof TextBox) {
-                System.out.println("One or both components are of type TextBox");
-                return;
-            }
-
-            // Draw the line
-            Line line = new Line(aggregation.getStartClass().getX(), aggregation.getStartClass().getY(), aggregation.getEndClass().getX(), aggregation.getEndClass().getY());
-            line.setStartX(startClass.getInitialPoint().getX());
-            line.setStartY(startClass.getInitialPoint().getY());
-            line.setEndX(endClass.getInitialPoint().getX());
-            line.setEndY(endClass.getInitialPoint().getY());
-            line.setStrokeWidth(1.0);
-            if(!drawingPane.getChildren().contains(line)){
-                drawingPane.getChildren().add(line);
-            }
-
-            // Calculate diamond coordinates
-            double diamondSize = 10; // Adjust as needed for the diamond size
-            double startX = line.getEndX();
-            double startY = line.getEndY();
-            double endX = line.getStartX();
-            double endY = line.getStartY();
-
-            double angle = Math.atan2(startY - endY, startX - endX);
-            double sin = Math.sin(angle);
-            double cos = Math.cos(angle);
-
-            // Points for the diamond (4 points)
-            double x1 = startX - diamondSize * cos;
-            double y1 = startY - diamondSize * sin;
-
-            double x2 = x1 - diamondSize * sin;
-            double y2 = y1 + diamondSize * cos;
-
-            double x3 = x1 + diamondSize * sin;
-            double y3 = y1 - diamondSize * cos;
-
-            double x4 = startX - 2 * diamondSize * cos;
-            double y4 = startY - 2 * diamondSize * sin;
-
-            // Create the diamond shape
-            Polygon diamond = new Polygon(
-                    startX, startY,  // Tip of the diamond (closest to end class)
-                    x2, y2,          // Left point
-                    x4, y4,          // Bottom point (opposite tip)
-                    x3, y3           // Right point
-            );
-            diamond.setFill(Color.WHITE); // Fill the diamond with white
-            diamond.setStroke(Color.BLACK); // Black outline for the diamond
-            diamond.setStrokeWidth(2);
-
-            // Add the diamond to the pane
-            if(!drawingPane.getChildren().contains(diamond)){
-                drawingPane.getChildren().add(diamond);
-            }
-
-            elementMap.put(line, aggregation);
-        } else {
-            Line line = new Line(aggregation.getStartClass().getX(), aggregation.getStartClass().getY(), aggregation.getEndClass().getX(), aggregation.getEndClass().getY());
-            drawingPane.getChildren().remove(line);
-            showWarning("Aggregation Error", "Both endpoints must be inside a class.");
-        }
-    }
-
-    public void redrawComposition(Composition composition){
-        System.out.println("redrawComposition called!");
-
-        Component startClass = composition.getStartClass();
-        Component endClass = composition.getEndClass();
-
-        if(startClass==null){
-            System.out.println("start class is null!");
-        }
-
-        if(endClass==null){
-            System.out.println("end class is null!");
-        }
-
-        // Inside your drawAggregation method
-        if (startClass != null && endClass != null) {
-            System.out.println("Start Class name: " + startClass.getName());
-            System.out.println("End Class name: " + endClass.getName());
-
-            if (startClass instanceof TextBox || endClass instanceof TextBox) {
-                System.out.println("One or both components are of type TextBox");
-                return;
-            }
-
-            // Draw the line
-            Line line = new Line(composition.getStartClass().getX(), composition.getStartClass().getY(), composition.getEndClass().getX(), composition.getEndClass().getY());
-            line.setStartX(startClass.getInitialPoint().getX());
-            line.setStartY(startClass.getInitialPoint().getY());
-            line.setEndX(endClass.getInitialPoint().getX());
-            line.setEndY(endClass.getInitialPoint().getY());
-            line.setStrokeWidth(1.0);
-            if(!drawingPane.getChildren().contains(line)){
-                drawingPane.getChildren().add(line);
-            }
-
-            // Calculate diamond coordinates
-            double diamondSize = 10; // Adjust as needed for the diamond size
-            double startX = line.getEndX();
-            double startY = line.getEndY();
-            double endX = line.getStartX();
-            double endY = line.getStartY();
-
-            double angle = Math.atan2(startY - endY, startX - endX);
-            double sin = Math.sin(angle);
-            double cos = Math.cos(angle);
-
-            // Points for the diamond (4 points)
-            double x1 = startX - diamondSize * cos;
-            double y1 = startY - diamondSize * sin;
-
-            double x2 = x1 - diamondSize * sin;
-            double y2 = y1 + diamondSize * cos;
-
-            double x3 = x1 + diamondSize * sin;
-            double y3 = y1 - diamondSize * cos;
-
-            double x4 = startX - 2 * diamondSize * cos;
-            double y4 = startY - 2 * diamondSize * sin;
-
-            // Create the diamond shape
-            Polygon diamond = new Polygon(
-                    startX, startY,  // Tip of the diamond (closest to end class)
-                    x2, y2,          // Left point
-                    x4, y4,          // Bottom point (opposite tip)
-                    x3, y3           // Right point
-            );
-            diamond.setFill(Color.BLACK); // Fill the diamond with white
-            diamond.setStroke(Color.BLACK); // Black outline for the diamond
-            diamond.setStrokeWidth(2);
-
-            // Add the diamond to the pane
-            if(!drawingPane.getChildren().contains(diamond)){
-                drawingPane.getChildren().add(diamond);
-            }
-
-            elementMap.put(line, composition);
-        } else {
-            Line line = new Line(composition.getStartClass().getX(), composition.getStartClass().getY(), composition.getEndClass().getX(), composition.getEndClass().getY());
-            drawingPane.getChildren().remove(line);
-            showWarning("Composition Error", "Both endpoints must be inside a class.");
-        }
     }
 
     public void removeComponentWithGivenIDFromElementMap(int id){
@@ -2228,10 +1326,6 @@ public class ClassDiagramController {
 
     private Line getLineFromInheritance(Inheritance inheritance){
         return new Line(inheritance.getStartClass().getX(), inheritance.getStartClass().getY(), inheritance.getEndClass().getX(), inheritance.getEndClass().getY());
-    }
-
-    private Line getLineFromDashedLine(DashedLine dashedLine){
-        return new Line(dashedLine.getStartClass().getX(), dashedLine.getStartClass().getY(), dashedLine.getEndClass().getX(), dashedLine.getEndClass().getY());
     }
 
     private Component getClassAtPoint(Point point) {

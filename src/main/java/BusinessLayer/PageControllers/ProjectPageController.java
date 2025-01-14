@@ -14,9 +14,7 @@ import javafx.scene.control.*;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Objects;
 import java.util.Optional;
@@ -28,7 +26,6 @@ import javafx.scene.image.WritableImage;
 import javafx.stage.DirectoryChooser;
 
 import javax.imageio.ImageIO;
-import java.io.File;
 
 import javafx.scene.control.TextInputDialog;
 import javafx.stage.FileChooser;
@@ -497,22 +494,23 @@ public class ProjectPageController {
         if (selectedFile != null) {
             // Serialize the group object
             Project tempProject = new Project();
-            try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream("group.ser"))) {
-                oos.writeObject(tempProject);
 
+            try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(selectedFile))) {
+                tempProject = (Project) ois.readObject();
                 Alert alert = new Alert(Alert.AlertType.INFORMATION);
                 alert.setTitle("Load Successful");
                 alert.setContentText("Project loaded successfully!");
                 alert.showAndWait();
-                //System.out.println("Group object serialized!");
-            } catch (IOException e) {
-                e.printStackTrace();
 
+                //System.out.println("Deserialized Project: " + );
+            } catch (IOException | ClassNotFoundException e) {
                 Alert alert = new Alert(Alert.AlertType.INFORMATION);
                 alert.setTitle("Load Failed");
                 alert.setContentText("Failed to load the project!");
                 alert.showAndWait();
+                e.printStackTrace();
             }
+
             System.out.println("Selected file: " + selectedFile.getAbsolutePath());
         } else {
             System.out.println("No file selected.");

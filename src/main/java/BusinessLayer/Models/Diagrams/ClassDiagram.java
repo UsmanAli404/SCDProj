@@ -27,15 +27,17 @@ public class ClassDiagram implements Model, Serializable {
     public void addComponent(Component c) {
         //check the counter first before adding
         if(findComponentByID(c.getId())==-1){//if no such component is found
-            if(c instanceof Association ||
-                    c instanceof Aggregation ||
-                    c instanceof Inheritance ||
-                    c instanceof Composition ||
-                    c instanceof DashedLine){
-                components.addFirst(c);
-            } else {
-                components.add(c);
-            }
+//            if(c instanceof Association ||
+//                    c instanceof Aggregation ||
+//                    c instanceof Inheritance ||
+//                    c instanceof Composition ||
+//                    c instanceof DashedLine){
+//                components.addFirst(c);
+//            } else {
+//                components.add(c);
+//            }
+
+            components.add(c);
 
             upcomingComponentID++;
         }
@@ -61,13 +63,6 @@ public class ClassDiagram implements Model, Serializable {
                 }
 
                 components.remove(index);
-                //shift back the component counter of each component starting from index
-                //starting from index as component at index is deleted and all the next
-                //components have been shifted one step back
-//                for (int i = index; i < components.size(); i++) {
-//                    components.get(i).setId(i + 1);
-//                }
-//                upcomingComponentID = components.size();
 
                 //check for associations
                 return true;
@@ -89,6 +84,9 @@ public class ClassDiagram implements Model, Serializable {
             //first delete all associations
             if(component instanceof Class || component instanceof Interface){
                 removeAssociations(component, removedComponents);
+                removeAggregations(component, removedComponents);
+                removeCompositions(component, removedComponents);
+                removeInheritances(component, removedComponents);
                 removeDashedLines(component, removedComponents);
             } else if(component instanceof TextBox){
                 removeDashedLines(component, removedComponents);
@@ -96,15 +94,6 @@ public class ClassDiagram implements Model, Serializable {
 
             components.remove(index);
             System.out.println("component removed with id: "+id);
-
-            //shift back the component counter of each component starting from index
-            //starting from index as component at index is deleted and all the next
-            //components have been shifted one step back
-//            for(int i=index; i<components.size(); i++){
-//                components.get(i).setId(i+1);
-//            }
-            //upcomingComponentID = components.size();
-            //also need to update the tree and ui
         }
         return removedComponents;
     }
@@ -143,6 +132,63 @@ public class ClassDiagram implements Model, Serializable {
             components.remove(remove_indexes.get(i));
         }
         System.out.println("association removed!");
+    }
+
+    public void removeAggregations(Component myClass, ArrayList<String> removedComponents){
+        ArrayList<Aggregation> remove_indexes = new ArrayList<>();
+        for(int i=0; i<components.size(); i++){
+            Component c = components.get(i);
+            if(c instanceof Aggregation aggregation){
+                if(aggregation.getStartClass()==myClass || aggregation.getEndClass()==myClass){
+                    System.out.println("removing aggregation with id: "+c.getId());
+                    remove_indexes.add((Aggregation) c);
+                    removedComponents.add(aggregation.getName()+" ("+aggregation.getId()+")");
+                }
+            }
+        }
+
+        for(int i=0; i<remove_indexes.size(); i++){
+            components.remove(remove_indexes.get(i));
+        }
+        System.out.println("aggregation removed!");
+    }
+
+    public void removeCompositions(Component myClass, ArrayList<String> removedComponents){
+        ArrayList<Composition> remove_indexes = new ArrayList<>();
+        for(int i=0; i<components.size(); i++){
+            Component c = components.get(i);
+            if(c instanceof Composition composition){
+                if(composition.getStartClass()==myClass || composition.getEndClass()==myClass){
+                    System.out.println("removing composition with id: "+c.getId());
+                    remove_indexes.add((Composition) c);
+                    removedComponents.add(composition.getName()+" ("+composition.getId()+")");
+                }
+            }
+        }
+
+        for(int i=0; i<remove_indexes.size(); i++){
+            components.remove(remove_indexes.get(i));
+        }
+        System.out.println("Composition removed!");
+    }
+
+    public void removeInheritances(Component myClass, ArrayList<String> removedComponents){
+        ArrayList<Inheritance> remove_indexes = new ArrayList<>();
+        for(int i=0; i<components.size(); i++){
+            Component c = components.get(i);
+            if(c instanceof Inheritance inheritance){
+                if(inheritance.getStartClass()==myClass || inheritance.getEndClass()==myClass){
+                    System.out.println("removing inheritance with id: "+c.getId());
+                    remove_indexes.add((Inheritance) c);
+                    removedComponents.add(inheritance.getName()+" ("+inheritance.getId()+")");
+                }
+            }
+        }
+
+        for(int i=0; i<remove_indexes.size(); i++){
+            components.remove(remove_indexes.get(i));
+        }
+        System.out.println("Inheritance removed!");
     }
 
     public void removeDashedLines(Component textBox, ArrayList<String> removedComponents){
