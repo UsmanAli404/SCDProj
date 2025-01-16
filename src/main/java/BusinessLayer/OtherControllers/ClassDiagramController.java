@@ -1,10 +1,12 @@
 package BusinessLayer.OtherControllers;
 
 import BusinessLayer.Models.Component;
-import BusinessLayer.Models.Components.ClassDiagramComponents.Association;
-import BusinessLayer.Models.Components.ClassDiagramComponents.Class;
-import BusinessLayer.Models.Components.ClassDiagramComponents.Function;
-import BusinessLayer.Models.Components.ClassDiagramComponents.Interface;
+import BusinessLayer.Models.Components.ClassDiagramComponents.Classes.Attribute;
+import BusinessLayer.Models.Components.ClassDiagramComponents.Classes.Class;
+import BusinessLayer.Models.Components.ClassDiagramComponents.Classes.Function;
+import BusinessLayer.Models.Components.ClassDiagramComponents.Classes.Interface;
+import BusinessLayer.Models.Components.ClassDiagramComponents.Line.LineType;
+import BusinessLayer.Models.Components.ClassDiagramComponents.Line.Multiplicity;
 import BusinessLayer.Models.Diagrams.ClassDiagram;
 import BusinessLayer.Models.Point;
 import BusinessLayer.PageControllers.ProjectPageController;
@@ -13,6 +15,7 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Point2D;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
@@ -28,11 +31,7 @@ import javafx.scene.shape.Polygon;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.*;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class ClassDiagramController {
@@ -76,7 +75,7 @@ public class ClassDiagramController {
     *
     */
     private void handleMousePressed(MouseEvent event) {
-        System.out.println("handleMousePressed");
+        //System.out.println("handleMousePressed");
         double x = event.getX();
         double y = event.getY();
 
@@ -97,8 +96,8 @@ public class ClassDiagramController {
             if (isWithinBounds(node, x, y)) {
                 selectedNode = node;
                 initialMousePosition = new Point(x, y);
-                System.out.println("Selected component has id: "+((Component)entry.getValue()).getId());
-                System.out.println("Mouse position: "+initialMousePosition.getX()+", "+initialMousePosition.getY());
+                //System.out.println("Selected component has id: "+((Component)entry.getValue()).getId());
+                //System.out.println("Mouse position: "+initialMousePosition.getX()+", "+initialMousePosition.getY());
                 return;
             }
         }
@@ -110,8 +109,6 @@ public class ClassDiagramController {
             tempLine.setEndX(event.getX());
             tempLine.setEndY(event.getY());
             return;
-        } else {
-            System.out.println("tempLine is null");
         }
 
         if (selectedNode != null && initialMousePosition != null) {
@@ -161,40 +158,18 @@ public class ClassDiagramController {
             }
             activeTool = null;
         }
-        //selectedNode = null;
         initialMousePosition = null;
     }
 
     private void handleDrawingCanvasClicked(MouseEvent event) {
-        System.out.println("handleDrawingCanvasClicked");
+        //System.out.println("handleDrawingCanvasClicked");
         double x = event.getX();
         double y = event.getY();
         for (Component component : classDiagram.getComponents()) {
-            if(component instanceof Association){
-                if (isNearLine((getLineFromAssociation((Association) component)), x, y)) {
+            if(component instanceof BusinessLayer.Models.Components.ClassDiagramComponents.Line.Line){
+                if (isNearLine(getJFXLineFromLine((BusinessLayer.Models.Components.ClassDiagramComponents.Line.Line) component), x, y)) {
                     if (event.getClickCount() == 2) {
-                        showAssociationDetailsForm((Association) component);
-                    }
-                    return;
-                }
-            } else if(component instanceof Inheritance){
-                if (isNearLine((getLineFromInheritance((Inheritance) component)), x, y)) {
-                    if (event.getClickCount() == 2) {
-                        showInheritanceDetailsForm((Inheritance) component);
-                    }
-                    return;
-                }
-            } else if(component instanceof Aggregation){
-                if (isNearLine((getLineFromAggregation((Aggregation) component)), x, y)) {
-                    if (event.getClickCount() == 2) {
-                        showAggregationDetailsForm((Aggregation) component);
-                    }
-                    return;
-                }
-            } else if(component instanceof Composition){
-                if (isNearLine((getLineFromComposition((Composition) component)), x, y)) {
-                    if (event.getClickCount() == 2) {
-                        showCompositionDetailsForm((Composition) component);
+                        showLineDetailsForm((BusinessLayer.Models.Components.ClassDiagramComponents.Line.Line) component);
                     }
                     return;
                 }
@@ -236,7 +211,7 @@ public class ClassDiagramController {
             } else if(activeTool.equals("TextBox")){
                 drawTextBox(null, x, y);
             }
-            activeTool = null;
+            //activeTool = null;
         }
     }
 
@@ -246,13 +221,16 @@ public class ClassDiagramController {
      *
      */
 
-    private void drawClass(Component class_, double x, double y) {
-        System.out.println("drawing class");
+    private void drawClassUtil(Component class_, String type, double x, double y){
         Point initialPoint;
         if(class_ == null){
             //will be called whenever a new class component is created
             initialPoint = new Point(x, y);
-            class_ = new Class(classDiagram.getUpcomingComponentID(), initialPoint);
+            if(Objects.equals(type, "Class")) {
+                class_ = new Class(classDiagram.getUpcomingComponentID(), initialPoint);
+            } else if (Objects.equals(type, "Interface")){
+                class_ = new Interface(classDiagram.getUpcomingComponentID(), initialPoint);
+            }
 
             addComponentToListAndUpdateTree(class_);
         } else {
@@ -264,32 +242,80 @@ public class ClassDiagramController {
         classBox.setLayoutX(initialPoint.getX());
         classBox.setLayoutY(initialPoint.getY());
         classBox.setStyle("-fx-border-color: black; -fx-border-width: 1; -fx-padding: 0; -fx-background-color: #F5E49C;");
-        Label classNameLabel = new Label(((Class)class_).getClassName());
-        classNameLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
-        VBox classNameBox = new VBox(classNameLabel);
+
+        //class name box
+        VBox classNameBox = new VBox();
         classNameBox.setMinWidth(initialWidth);
         classNameBox.setStyle("-fx-border-color: black; -fx-border-width: 1; -fx-padding: 5;");
-        VBox attributesBox = new VBox();
-        attributesBox.setMinWidth(initialWidth);
-        attributesBox.setStyle("-fx-border-color: black; -fx-border-width: 1; -fx-padding: 5;");
-        ArrayList<Attribute> attributes = ((Class)class_).getAttributes();
-        for (Attribute attribute : attributes) {
-            Label attributeLabel = new Label(attribute.toString());
-            attributesBox.getChildren().add(attributeLabel);
+        classNameBox.setAlignment(Pos.CENTER);
+
+        Label classNameLabel = new Label(class_.getName());
+        classNameLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
+
+        if(class_ instanceof Interface){
+            Label interfaceLabel = new Label("<<Interface>>");
+            interfaceLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
+            classNameBox.getChildren().add(interfaceLabel);
         }
+        classNameBox.getChildren().add(classNameLabel);
+        classBox.getChildren().add(classNameBox);
+
+        //class attribute box
+        VBox attributesBox = null;
+
+        if(class_ instanceof Class){
+            attributesBox = new VBox();
+            attributesBox.setMinWidth(initialWidth);
+            attributesBox.setStyle("-fx-border-color: black; -fx-border-width: 1; -fx-padding: 5;");
+            ArrayList<Attribute> attributes = ((Class) class_).getAttributes();
+            for (Attribute attribute : attributes) {
+                Label attributeLabel = new Label(attribute.toString());
+                attributesBox.getChildren().add(attributeLabel);
+            }
+            classBox.getChildren().add(attributesBox);
+        }
+
+        //class function box
         VBox functionsBox = new VBox();
         functionsBox.setMinWidth(initialWidth);
         functionsBox.setStyle("-fx-border-color: black; -fx-border-width: 1; -fx-padding: 5;");
-        ArrayList<Function> functions = ((Class)class_).getFunctions();
+        ArrayList<Function> functions = null;
+
+        if(class_ instanceof Class){
+            functions = ((Class)class_).getFunctions();
+        } else if(class_ instanceof Interface){
+            functions = ((Interface)class_).getFunctions();
+        }
+
+        assert functions != null;
         for (Function function : functions) {
             Label functionLabel = new Label(function.toString());
             functionsBox.getChildren().add(functionLabel);
         }
-        double maxWidth = Math.max(initialWidth, Math.max(getMaxLabelWidth(classNameBox), Math.max(getMaxLabelWidth(attributesBox), getMaxLabelWidth(functionsBox))));
+        classBox.getChildren().add(functionsBox);
+
+        double maxWidth;
+
+        if(class_ instanceof Class){
+            ArrayList<Double> arr = new ArrayList<>();
+            arr.add(initialWidth);
+            arr.add(getMaxLabelWidth(classNameBox));
+            arr.add(getMaxLabelWidth(attributesBox));
+            arr.add(getMaxLabelWidth(functionsBox));
+
+            maxWidth = Collections.max(arr);
+            attributesBox.setMinWidth(maxWidth);
+        } else {
+            ArrayList<Double> arr = new ArrayList<>();
+            arr.add(initialWidth);
+            arr.add(getMaxLabelWidth(classNameBox));
+            arr.add(getMaxLabelWidth(functionsBox));
+
+            maxWidth = Collections.max(arr);
+        }
+
         classNameBox.setMinWidth(maxWidth);
-        attributesBox.setMinWidth(maxWidth);
         functionsBox.setMinWidth(maxWidth);
-        classBox.getChildren().addAll(classNameBox, attributesBox, functionsBox);
 
         drawingPane.getChildren().add(classBox);
 
@@ -298,56 +324,16 @@ public class ClassDiagramController {
         }
     }
 
+    private void drawClass(Component class_, double x, double y) {
+        drawClassUtil(class_, "Class", x, y);
+    }
+
     public void drawInterface(Component interface_, double x, double y) {
-        System.out.println("drawInterface called! x = " + x + " y = " + y);
-        Point initialPoint;
-        if(interface_ == null){
-            initialPoint = new Point(x, y);
-            interface_ = new Interface(classDiagram.getUpcomingComponentID(), initialPoint);
-
-            addComponentToListAndUpdateTree(interface_);
-        } else {
-            initialPoint = new Point(interface_.getInitialPoint().getX(), interface_.getInitialPoint().getY());
-        }
-
-        double initialWidth = 120;
-        VBox classBox = new VBox();
-        classBox.setLayoutX(initialPoint.getX());
-        classBox.setLayoutY(initialPoint.getY());
-        classBox.setStyle("-fx-border-color: black; -fx-border-width: 2; -fx-padding: 5; -fx-background-color: #F5E49C;");
-        Label classNameLabel = new Label(((Interface)interface_).getClassName());
-        Label interfaceLabel = new Label("  <<Interface>>");
-        classNameLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
-        interfaceLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
-        VBox classNameBox = new VBox();
-        classNameBox.getChildren().addAll(interfaceLabel,classNameLabel);
-        classNameBox.setMinWidth(initialWidth);
-        classNameBox.setStyle("-fx-border-color: black; -fx-border-width: 1; -fx-padding: 5;");
-        VBox attributesBox = new VBox();
-        attributesBox.setMinWidth(initialWidth);
-        attributesBox.setStyle("-fx-border-color: black; -fx-border-width: 1; -fx-padding: 5;");
-        VBox functionsBox = new VBox();
-        functionsBox.setMinWidth(initialWidth);
-        functionsBox.setStyle("-fx-border-color: black; -fx-border-width: 1; -fx-padding: 5;");
-        ArrayList<Function> functions = ((Interface)interface_).getFunctions();
-        for (Function function : functions) {
-            Label functionLabel = new Label(function.toString());
-            functionsBox.getChildren().add(functionLabel);
-        }
-        double maxWidth = Math.max(initialWidth, Math.max(getMaxLabelWidth(classNameBox), Math.max(getMaxLabelWidth(attributesBox), getMaxLabelWidth(functionsBox))));
-        classNameBox.setMinWidth(maxWidth);
-        attributesBox.setMinWidth(maxWidth);
-        functionsBox.setMinWidth(maxWidth);
-        classBox.getChildren().addAll(classNameBox, attributesBox, functionsBox);
-        drawingPane.getChildren().add(classBox);
-
-        if(!IsComponentInElementMap(interface_)) {
-            elementMap.put(classBox, interface_);
-        }
+        drawClassUtil(interface_, "Interface", x, y);
     }
 
     public void drawTextBox(Component textBox, double x, double y) {
-        System.out.println("drawing TextBox");
+        //System.out.println("drawing TextBox");
         Point initialPoint;
         if(textBox == null){
             initialPoint = new Point(x, y);
@@ -382,7 +368,7 @@ public class ClassDiagramController {
         }
     }
 
-    private void drawAssociation(BusinessLayer.Models.Components.ClassDiagramComponents.Line association, Point initialPoint, Point finalPoint) {
+    private void drawAssociation(BusinessLayer.Models.Components.ClassDiagramComponents.Line.Line association, Point initialPoint, Point finalPoint) {
         if(association==null) {
             //make a new line of type association if association is null
             // (only the first time)
@@ -395,11 +381,10 @@ public class ClassDiagramController {
         }
 
         Line line = drawLine(association, false);
-
         drawLineFuncBottomUtil(line, association);
     }
 
-    private void drawInheritance(BusinessLayer.Models.Components.ClassDiagramComponents.Line inheritance, Point initialPoint, Point finalPoint){
+    private void drawInheritance(BusinessLayer.Models.Components.ClassDiagramComponents.Line.Line inheritance, Point initialPoint, Point finalPoint){
         if(inheritance==null) {
             inheritance = drawLineFuncTopUtil(inheritance, LineType.INHERITANCE, initialPoint, finalPoint);
         }
@@ -413,7 +398,7 @@ public class ClassDiagramController {
         drawLineFuncBottomUtil(line, inheritance);
     }
 
-    private void drawAggregation(BusinessLayer.Models.Components.ClassDiagramComponents.Line aggregation, Point initialPoint, Point finalPoint){
+    private void drawAggregation(BusinessLayer.Models.Components.ClassDiagramComponents.Line.Line aggregation, Point initialPoint, Point finalPoint){
         if(aggregation==null) {
             aggregation = drawLineFuncTopUtil(aggregation, LineType.AGGREGATION, initialPoint, finalPoint);
         }
@@ -424,13 +409,11 @@ public class ClassDiagramController {
 
         // Draw the line
         Line line = drawLine(aggregation, false);
-
         drawDiamond(line, false);
-
         drawLineFuncBottomUtil(line, aggregation);
     }
 
-    private void drawComposition(BusinessLayer.Models.Components.ClassDiagramComponents.Line composition, Point initialPoint, Point finalPoint){
+    private void drawComposition(BusinessLayer.Models.Components.ClassDiagramComponents.Line.Line composition, Point initialPoint, Point finalPoint){
         if(composition==null) {
             composition = drawLineFuncTopUtil(composition, LineType.COMPOSITION, initialPoint, finalPoint);
         }
@@ -442,11 +425,10 @@ public class ClassDiagramController {
         // Draw the line
         Line line = drawLine(composition, false);
         drawDiamond(line, true);
-
         drawLineFuncBottomUtil(line, composition);
     }
 
-    private void drawDashedLine(BusinessLayer.Models.Components.ClassDiagramComponents.Line dashedLine, Point initialPoint, Point finalPoint) {
+    private void drawDashedLine(BusinessLayer.Models.Components.ClassDiagramComponents.Line.Line dashedLine, Point initialPoint, Point finalPoint) {
         if(dashedLine==null){
             dashedLine = drawLineFuncTopUtil(dashedLine, LineType.DASHED, initialPoint, finalPoint);
         }
@@ -460,14 +442,14 @@ public class ClassDiagramController {
         drawLineFuncBottomUtil(line, dashedLine);
     }
 
-    private void showText(BusinessLayer.Models.Components.ClassDiagramComponents.Line line){
-        Text text = new Text(line.getName());
-        text.setX((line.getStartComp().getX() + line.getEndComp().getX()) / 2);
-        text.setY((line.getStartComp().getY() + line.getEndComp().getY()) / 2 - 10);
+    private void drawText(BusinessLayer.Models.Components.ClassDiagramComponents.Line.Line line_, Line line){
+        Text text = new Text(line_.getName());
+        text.setX((line.getStartX()+line.getEndX()) / 2);
+        text.setY((line.getStartY()+line.getEndY()) / 2 - 10);
         drawingPane.getChildren().add(text);
     }
 
-    private void showMultiplicity(Multiplicity multiplicity, Component referenceComponent){
+    private void drawMultiplicity(Multiplicity multiplicity, Point referncePoint, double xOffset, double yOffset){
         Text multiplicityText;
         if(multiplicity.getFirst().isEmpty() || multiplicity.getSecond().isEmpty()){
             multiplicityText = new Text("");
@@ -475,8 +457,8 @@ public class ClassDiagramController {
             multiplicityText = new Text(multiplicity.getFirst()+".."+multiplicity.getSecond());
         }
 
-        multiplicityText.setX(referenceComponent.getX() + 5);
-        multiplicityText.setY(referenceComponent.getY() - 5);
+        multiplicityText.setX(referncePoint.getX() + xOffset);
+        multiplicityText.setY(referncePoint.getY() + yOffset);
         drawingPane.getChildren().add(multiplicityText);
     }
 
@@ -510,10 +492,10 @@ public class ClassDiagramController {
         drawingPane.getChildren().add(arrowHead);
     }
 
-    private BusinessLayer.Models.Components.ClassDiagramComponents.Line drawLineFuncTopUtil(BusinessLayer.Models.Components.ClassDiagramComponents.Line line, LineType lineType, Point initialPoint, Point finalPoint){
-        System.out.println("drawing "+lineType.getType());
-        System.out.println("initial point: x = "+initialPoint.getX() +  ", y =  " + initialPoint.getY());
-        System.out.println("final point: x = "+finalPoint.getX() +  ", y =  " + finalPoint.getY());
+    private BusinessLayer.Models.Components.ClassDiagramComponents.Line.Line drawLineFuncTopUtil(BusinessLayer.Models.Components.ClassDiagramComponents.Line.Line line, LineType lineType, Point initialPoint, Point finalPoint){
+        //System.out.println("drawing "+lineType.getType());
+        //System.out.println("initial point: x = "+initialPoint.getX() +  ", y =  " + initialPoint.getY());
+        //System.out.println("final point: x = "+finalPoint.getX() +  ", y =  " + finalPoint.getY());
         if(initialPoint==null || finalPoint==null){
             System.out.println("initial and or final point is null!");
             return null;
@@ -545,7 +527,7 @@ public class ClassDiagramController {
             return null;
         }
 
-        line = new BusinessLayer.Models.Components.ClassDiagramComponents.Line(
+        line = new BusinessLayer.Models.Components.ClassDiagramComponents.Line.Line(
                 classDiagram.getUpcomingComponentID(),
                 initialPoint.getX(), initialPoint.getY(),
                 lineType,
@@ -557,17 +539,27 @@ public class ClassDiagramController {
         return line;
     }
 
-    private void drawLineFuncBottomUtil(Line line, BusinessLayer.Models.Components.ClassDiagramComponents.Line line_){
-        showText(line_);
-        showMultiplicity(line_.getStartMultiplicity(), line_.getStartComp());
-        showMultiplicity(line_.getEndMultiplicity(), line_.getEndComp());
+    private void drawLineFuncBottomUtil(Line line, BusinessLayer.Models.Components.ClassDiagramComponents.Line.Line line_){
+        drawText(line_, line);
+        double xOffset = 15;
+        double xRightOffset = 0;
+        double xLeftOffset = 0;
+        double yTopOffset = 10;//for the component on the top
+        double yBottomOffset = -5;
+        if(line_.getStartComp().getY() < line_.getEndComp().getY()){
+            drawMultiplicity(line_.getStartMultiplicity(), new Point(line.getStartX(), line.getStartY()), xOffset, yTopOffset);
+            drawMultiplicity(line_.getEndMultiplicity(), new Point(line.getEndX(), line.getEndY()), xOffset, yBottomOffset);
+        } else{
+            drawMultiplicity(line_.getStartMultiplicity(), new Point(line.getStartX(), line.getStartY()), xOffset, yBottomOffset);
+            drawMultiplicity(line_.getEndMultiplicity(), new Point(line.getEndX(), line.getEndY()), xOffset, yTopOffset);
+        }
 
         if(!IsComponentInElementMap(line_)){
             elementMap.put(line, line_);
         }
     }
 
-    public void drawDiamond(Line line, boolean fillDiamond){
+    private void drawDiamond(Line line, boolean fillDiamond){
         // Calculate diamond coordinates
         double diamondSize = 10;
         double startX = line.getEndX();
@@ -611,13 +603,57 @@ public class ClassDiagramController {
         drawingPane.getChildren().add(diamond);
     }
 
-    public Line drawLine(BusinessLayer.Models.Components.ClassDiagramComponents.Line line_, Boolean dashed){
-        Line line = new Line(
-                line_.getStartComp().getX(),
-                line_.getStartComp().getY(),
-                line_.getEndComp().getX(),
-                line_.getEndComp().getY()
-        );
+    private Line drawLine(BusinessLayer.Models.Components.ClassDiagramComponents.Line.Line line_, Boolean dashed){
+        double x1 = line_.getStartComp().getX();
+        double y1 = line_.getStartComp().getY();
+        double x2 = line_.getEndComp().getX();
+        double y2 = line_.getEndComp().getY();
+
+        double startCompHeight = getComponentHeight(line_.getStartComp());
+        double startCompWidth = getComponentWidth(line_.getStartComp());
+
+        double endCompWidth = getComponentWidth(line_.getEndComp());
+        double endCompHeight = getComponentHeight(line_.getEndComp());
+
+        if(y1 < y2){
+            if(y2 < (y1+startCompHeight)){
+                //check if end component is left or right of start
+                if(x1 < x2){
+                    //right
+                    x1 += startCompWidth;
+                } else {
+                    //left
+                    x2 += endCompWidth;
+                }
+                y1 += startCompHeight/2;
+                y2 += endCompHeight/2;
+            } else {
+                y1 += startCompHeight;
+                x1 += startCompWidth/2;
+
+                x2 += endCompWidth/2;
+            }
+        } else{
+            if(y1 < (y2+endCompHeight)){
+                //check if end component is left or right of start
+                if(x2 < x1){
+                    //right
+                    x2 += endCompWidth;
+                } else {
+                    //left
+                    x1 += startCompWidth;
+                }
+                y2 += endCompHeight/2;
+                y1 += startCompHeight/2;
+            } else {
+                y2 += endCompHeight;
+                x2 += endCompWidth/2;
+
+                x1 += startCompWidth/2;
+            }
+        }
+
+        Line line = new Line(x1, y1, x2, y2);
         line.setStrokeWidth(1.0);
         if(dashed){
             line.getStrokeDashArray().addAll(5.0, 5.0);
@@ -626,11 +662,28 @@ public class ClassDiagramController {
         return line;
     }
 
-    public boolean hasLink(Component start, Component end){
+    private double getComponentWidth(Component component){
+        Node componentNode = getNodeFromComponent(component);
+        if(componentNode == null){
+            return -1.0;
+        }
+
+        return componentNode.getLayoutBounds().getWidth();
+    }
+
+    private double getComponentHeight(Component component){
+        Node componentNode = getNodeFromComponent(component);
+        if(componentNode == null){
+            return -1.0;
+        }
+
+        return componentNode.getLayoutBounds().getHeight();
+    }
+
+    private boolean hasLink(Component start, Component end){
         for (Map.Entry<Node, Object> entry : elementMap.entrySet()) {
             Object object = entry.getValue();
-            if(object instanceof BusinessLayer.Models.Components.ClassDiagramComponents.Line){
-                BusinessLayer.Models.Components.ClassDiagramComponents.Line line = (BusinessLayer.Models.Components.ClassDiagramComponents.Line) object;
+            if(object instanceof BusinessLayer.Models.Components.ClassDiagramComponents.Line.Line line){
                 if(line.getStartComp() == start || line.getStartComp() == end){
                     if(line.getEndComp() == start || line.getEndComp() == end){
                         return true;
@@ -650,7 +703,7 @@ public class ClassDiagramController {
         if(currentClassDiagramTreeItem==null){
             System.out.println("Class TreeItem is null, can't add a new treeItem to it!");
         } else {
-            System.out.println("TreeItem with class name: "+currentClassDiagramTreeItem.getValue()+" found!");
+            //System.out.println("TreeItem with class name: "+currentClassDiagramTreeItem.getValue()+" found!");
             TreeItem<String> newComponentTreeItem = new TreeItem<>(component.getName()+" ("+component.getId()+")");
             currentClassDiagramTreeItem.getChildren().add(newComponentTreeItem);
         }
@@ -665,11 +718,24 @@ public class ClassDiagramController {
         }
     }
 
+    private Node getNodeFromComponent(Component componentToFind){
+        for(Map.Entry<Node, Object> entry: elementMap.entrySet()){
+            Object object = entry.getValue();
+            Component component = (Component) object;
+            if(component == componentToFind){
+                return entry.getKey();
+            }
+        }
+
+        return null;
+    }
+
     /*
      *
      * Show details functions
      *
      */
+
     public void showInterfaceDetails(Interface clazz){
         System.out.println("showInterfaceDetails called!");
         Stage detailStage = new Stage();
@@ -783,29 +849,29 @@ public class ClassDiagramController {
         detailStage.show();
     }
 
-    private void showAssociationDetailsForm(Association association) {
+    private void showLineDetailsForm(BusinessLayer.Models.Components.ClassDiagramComponents.Line.Line line){
         System.out.println("showAssociationDetailsForm called!");
         Dialog<ButtonType> dialog = new Dialog<>();
-        dialog.setTitle("Edit Association");
-        dialog.setHeaderText("Edit Multiplicity and Text for Association");
+        dialog.setTitle("Edit Line");
+        dialog.setHeaderText("Edit Multiplicity and Text");
         VBox content = new VBox(10);
         content.setPadding(new Insets(10));
         TextField startStartField = new TextField();
         startStartField.setPromptText("Start Multiplicity (Start)");
         TextField startEndField = new TextField();
         startEndField.setPromptText("Start Multiplicity (End)");
-        startStartField.setText(association.getStartInitialMultiplicity());
-        startEndField.setText(association.getStartEndMultiplicity());
+        startStartField.setText(line.getStartMultiplicity().getFirst());
+        startEndField.setText(line.getStartMultiplicity().getSecond());
 
         TextField endStartField = new TextField();
         endStartField.setPromptText("End Multiplicity (Start)");
         TextField endEndField = new TextField();
         endEndField.setPromptText("End Multiplicity (End)");
-        endStartField.setText(association.getEndStartMultiplicity());
-        endEndField.setText(association.getEndEndMultiplicity());
+        endStartField.setText(line.getEndMultiplicity().getFirst());
+        endEndField.setText(line.getEndMultiplicity().getSecond());
         TextField textField = new TextField();
         textField.setPromptText("Text");
-        textField.setText(association.getName());
+        textField.setText(line.getName());
 
         content.getChildren().addAll(
                 new Label("Start Multiplicity:"),
@@ -819,18 +885,15 @@ public class ClassDiagramController {
         Optional<ButtonType> result = dialog.showAndWait();
         if (result.isPresent() && result.get() == ButtonType.OK) {
             try {
-                association.setStartInitialMultiplicity((startStartField.getText()));
-                association.setStartEndMultiplicity(startEndField.getText());
+                line.setStartMultiplicity(new Multiplicity(startStartField.getText(), startEndField.getText()));
+                line.setEndMultiplicity(new Multiplicity(endStartField.getText(), endEndField.getText()));
 
-                association.setEndStartMultiplicity(endStartField.getText());
-                association.setEndEndMultiplicity(endEndField.getText());
-
-                String oldAssociationName = association.getName();
-                association.setName(textField.getText());
+                String oldLineName = line.getName();
+                line.setName(textField.getText());
                 //update model explorer
-                TreeItem<String> treeItem = projectPageController.findTreeItemWithGivenName(oldAssociationName+" ("+association.getId()+")");
+                TreeItem<String> treeItem = projectPageController.findTreeItemWithGivenName(oldLineName+" ("+line.getId()+")");
                 if(treeItem!=null){
-                    treeItem.setValue(association.getName()+" ("+ association.getId()+")");
+                    treeItem.setValue(line.getName()+" ("+ line.getId()+")");
                 }
                 //clear the current selection
                 projectPageController.setSelectedComponentTextFieldText("");
@@ -900,186 +963,12 @@ public class ClassDiagramController {
         }
     }
 
-    private void showInheritanceDetailsForm(Inheritance inheritance) {
-        System.out.println("showInheritanceDetailsForm called!");
-        Dialog<ButtonType> dialog = new Dialog<>();
-        dialog.setTitle("Edit Inheritance");
-        dialog.setHeaderText("Edit Multiplicity and Text for Inheritance");
-        VBox content = new VBox(10);
-        content.setPadding(new Insets(10));
-        TextField startStartField = new TextField();
-        startStartField.setPromptText("Start Multiplicity (Start)");
-        TextField startEndField = new TextField();
-        startEndField.setPromptText("Start Multiplicity (End)");
-        startStartField.setText(inheritance.getStartInitialMultiplicity());
-        startEndField.setText(inheritance.getStartEndMultiplicity());
-
-        TextField endStartField = new TextField();
-        endStartField.setPromptText("End Multiplicity (Start)");
-        TextField endEndField = new TextField();
-        endEndField.setPromptText("End Multiplicity (End)");
-        endStartField.setText(inheritance.getEndStartMultiplicity());
-        endEndField.setText(inheritance.getEndEndMultiplicity());
-        TextField textField = new TextField();
-        textField.setPromptText("Text");
-        textField.setText(inheritance.getName());
-
-        content.getChildren().addAll(
-                new Label("Start Multiplicity:"),
-                new HBox(5, new Label("Start:"), startStartField, new Label("End:"), startEndField),
-                new Label("End Multiplicity:"),
-                new HBox(5, new Label("Start:"), endStartField, new Label("End:"), endEndField),
-                new Label("Text:"), textField
-        );
-        dialog.getDialogPane().setContent(content);
-        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
-        Optional<ButtonType> result = dialog.showAndWait();
-        if (result.isPresent() && result.get() == ButtonType.OK) {
-            try {
-                inheritance.setStartInitialMultiplicity((startStartField.getText()));
-                inheritance.setStartEndMultiplicity(startEndField.getText());
-
-                inheritance.setEndStartMultiplicity(endStartField.getText());
-                inheritance.setEndEndMultiplicity(endEndField.getText());
-
-                String oldInheritanceName = inheritance.getName();
-                inheritance.setName(textField.getText());
-                //update model explorer
-                TreeItem<String> treeItem = projectPageController.findTreeItemWithGivenName(oldInheritanceName+" ("+inheritance.getId()+")");
-                if(treeItem!=null){
-                    treeItem.setValue(inheritance.getName()+" ("+ inheritance.getId()+")");
-                }
-                //clear the current selection
-                projectPageController.setSelectedComponentTextFieldText("");
-                redrawCanvas();
-            } catch (NumberFormatException e) {
-                showWarning("Invalid Input", "Please enter valid numbers for multiplicities.");
-            }
-        }
-    }
-
-    private void showAggregationDetailsForm(Aggregation aggregation){
-        System.out.println("showAggregationDetailsForm called!");
-        Dialog<ButtonType> dialog = new Dialog<>();
-        dialog.setTitle("Edit Inheritance");
-        dialog.setHeaderText("Edit Multiplicity and Text for Inheritance");
-        VBox content = new VBox(10);
-        content.setPadding(new Insets(10));
-        TextField startStartField = new TextField();
-        startStartField.setPromptText("Start Multiplicity (Start)");
-        TextField startEndField = new TextField();
-        startEndField.setPromptText("Start Multiplicity (End)");
-        startStartField.setText(aggregation.getStartInitialMultiplicity());
-        startEndField.setText(aggregation.getStartEndMultiplicity());
-
-        TextField endStartField = new TextField();
-        endStartField.setPromptText("End Multiplicity (Start)");
-        TextField endEndField = new TextField();
-        endEndField.setPromptText("End Multiplicity (End)");
-        endStartField.setText(aggregation.getEndStartMultiplicity());
-        endEndField.setText(aggregation.getEndEndMultiplicity());
-        TextField textField = new TextField();
-        textField.setPromptText("Text");
-        textField.setText(aggregation.getName());
-
-        content.getChildren().addAll(
-                new Label("Start Multiplicity:"),
-                new HBox(5, new Label("Start:"), startStartField, new Label("End:"), startEndField),
-                new Label("End Multiplicity:"),
-                new HBox(5, new Label("Start:"), endStartField, new Label("End:"), endEndField),
-                new Label("Text:"), textField
-        );
-        dialog.getDialogPane().setContent(content);
-        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
-        Optional<ButtonType> result = dialog.showAndWait();
-        if (result.isPresent() && result.get() == ButtonType.OK) {
-            try {
-                aggregation.setStartInitialMultiplicity((startStartField.getText()));
-                aggregation.setStartEndMultiplicity(startEndField.getText());
-
-                aggregation.setEndStartMultiplicity(endStartField.getText());
-                aggregation.setEndEndMultiplicity(endEndField.getText());
-
-                String oldInheritanceName = aggregation.getName();
-                aggregation.setName(textField.getText());
-                //update model explorer
-                TreeItem<String> treeItem = projectPageController.findTreeItemWithGivenName(oldInheritanceName+" ("+aggregation.getId()+")");
-                if(treeItem!=null){
-                    treeItem.setValue(aggregation.getName()+" ("+ aggregation.getId()+")");
-                }
-                //clear the current selection
-                projectPageController.setSelectedComponentTextFieldText("");
-                redrawCanvas();
-            } catch (NumberFormatException e) {
-                showWarning("Invalid Input", "Please enter valid numbers for multiplicities.");
-            }
-        }
-    }
-
-    private void showCompositionDetailsForm(Composition composition){
-        System.out.println("showCompositionDetailsForm called!");
-        Dialog<ButtonType> dialog = new Dialog<>();
-        dialog.setTitle("Edit Inheritance");
-        dialog.setHeaderText("Edit Multiplicity and Text for Inheritance");
-        VBox content = new VBox(10);
-        content.setPadding(new Insets(10));
-        TextField startStartField = new TextField();
-        startStartField.setPromptText("Start Multiplicity (Start)");
-        TextField startEndField = new TextField();
-        startEndField.setPromptText("Start Multiplicity (End)");
-        startStartField.setText(composition.getStartInitialMultiplicity());
-        startEndField.setText(composition.getStartEndMultiplicity());
-
-        TextField endStartField = new TextField();
-        endStartField.setPromptText("End Multiplicity (Start)");
-        TextField endEndField = new TextField();
-        endEndField.setPromptText("End Multiplicity (End)");
-        endStartField.setText(composition.getEndStartMultiplicity());
-        endEndField.setText(composition.getEndEndMultiplicity());
-        TextField textField = new TextField();
-        textField.setPromptText("Text");
-        textField.setText(composition.getName());
-
-        content.getChildren().addAll(
-                new Label("Start Multiplicity:"),
-                new HBox(5, new Label("Start:"), startStartField, new Label("End:"), startEndField),
-                new Label("End Multiplicity:"),
-                new HBox(5, new Label("Start:"), endStartField, new Label("End:"), endEndField),
-                new Label("Text:"), textField
-        );
-        dialog.getDialogPane().setContent(content);
-        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
-        Optional<ButtonType> result = dialog.showAndWait();
-        if (result.isPresent() && result.get() == ButtonType.OK) {
-            try {
-                composition.setStartInitialMultiplicity((startStartField.getText()));
-                composition.setStartEndMultiplicity(startEndField.getText());
-
-                composition.setEndStartMultiplicity(endStartField.getText());
-                composition.setEndEndMultiplicity(endEndField.getText());
-
-                String oldInheritanceName = composition.getName();
-                composition.setName(textField.getText());
-                //update model explorer
-                TreeItem<String> treeItem = projectPageController.findTreeItemWithGivenName(oldInheritanceName+" ("+composition.getId()+")");
-                if(treeItem!=null){
-                    treeItem.setValue(composition.getName()+" ("+ composition.getId()+")");
-                }
-                //clear the current selection
-                projectPageController.setSelectedComponentTextFieldText("");
-                redrawCanvas();
-            } catch (NumberFormatException e) {
-                showWarning("Invalid Input", "Please enter valid numbers for multiplicities.");
-            }
-        }
-    }
-
     /*
      *
      * update functions
      *
      */
-    private void updateAttributesBox(BusinessLayer.Models.Components.ClassDiagramComponents.Class clazz, VBox attributesBox) {
+    private void updateAttributesBox(Class clazz, VBox attributesBox) {
         System.out.println("updateAttributesBox() called");
         attributesBox.getChildren().clear();
         for (Attribute attribute : clazz.getAttributes()) {
@@ -1113,7 +1002,7 @@ public class ClassDiagramController {
         }
     }
 
-    private void updateFunctionsBox(BusinessLayer.Models.Components.ClassDiagramComponents.Class clazz, VBox functionsBox) {
+    private void updateFunctionsBox(Class clazz, VBox functionsBox) {
         System.out.println("updateFunctionsBox for class called!");
         functionsBox.getChildren().clear();
         for (Function function : clazz.getFunctions()) {
@@ -1186,7 +1075,7 @@ public class ClassDiagramController {
     }
 
     private void updateParametersBox(Function function, VBox parametersBox) {
-        System.out.println("updateParametersBox() called");
+        //System.out.println("updateParametersBox() called");
         parametersBox.getChildren().clear();
         for (Attribute parameter : function.getAttributes()) {
             HBox paramBox = new HBox(5);
@@ -1215,8 +1104,7 @@ public class ClassDiagramController {
      */
 
     private boolean isNearLine(Line line, double x, double y) {
-
-        System.out.println("isNearLine called!");
+        //System.out.println("isNearLine called!");
         Point2D start = new Point2D(line.getStartX(), line.getStartY());
         Point2D end = new Point2D(line.getEndX(), line.getEndY());
         Point2D point = new Point2D(x, y);
@@ -1224,7 +1112,7 @@ public class ClassDiagramController {
     }
 
     private void showWarning(String title, String message) {
-        System.out.println("showWarning called!");
+        //System.out.println("showWarning called!");
         Alert alert = new Alert(Alert.AlertType.WARNING);
         alert.setTitle(title);
         alert.setHeaderText(title);
@@ -1238,19 +1126,18 @@ public class ClassDiagramController {
      *
      */
     public void redrawCanvas() {
-        System.out.println("redrawCanvas called!");
+        //System.out.println("redrawCanvas called!");
         drawingPane.getChildren().clear();
 
         for(Component component : classDiagram.getComponents()){
-            System.out.println("Class diagram component with id: "+component.getId()+", called in redrawCanvas");
+            //System.out.println("Class diagram component with id: "+component.getId()+", called in redrawCanvas");
             if(component instanceof Class){
                 drawClass(component, 0, 0);
             } else if(component instanceof Interface){
                 drawInterface(component, 0, 0);
             } else if(component instanceof TextBox){
                 drawTextBox(component, 0, 0);
-            } else if(component instanceof BusinessLayer.Models.Components.ClassDiagramComponents.Line){
-                BusinessLayer.Models.Components.ClassDiagramComponents.Line line = (BusinessLayer.Models.Components.ClassDiagramComponents.Line) component;
+            } else if(component instanceof BusinessLayer.Models.Components.ClassDiagramComponents.Line.Line line){
                 if(Objects.equals(line.getType(), "Association")){
                     drawAssociation(line, new Point(0, 0), new Point(0, 0));
                 } else if(Objects.equals(line.getType(), "Inheritance")){
@@ -1265,13 +1152,13 @@ public class ClassDiagramController {
             }
         }
 
-        printElementMap();
-        System.out.println("");
+        //printElementMap();
+        //System.out.println("");
     }
 
     boolean IsComponentInElementMap(Component component){
         for(Map.Entry<Node, Object> entry : elementMap.entrySet()){
-            if(component == (Component) entry.getValue()){
+            if(component == entry.getValue()){
                 return true;
             }
         }
@@ -1312,29 +1199,19 @@ public class ClassDiagramController {
      * other utility functions
      *
      */
-    private Line getLineFromAssociation(Association association){
-        return new Line(association.getStartClass().getX(), association.getStartClass().getY(), association.getEndClass().getX(), association.getEndClass().getY());
-    }
-
-    private Line getLineFromAggregation(Aggregation aggregation){
-        return new Line(aggregation.getStartClass().getX(), aggregation.getStartClass().getY(), aggregation.getEndClass().getX(), aggregation.getEndClass().getY());
-    }
-
-    private Line getLineFromComposition(Composition composition){
-        return new Line(composition.getStartClass().getX(), composition.getStartClass().getY(), composition.getEndClass().getX(), composition.getEndClass().getY());
-    }
-
-    private Line getLineFromInheritance(Inheritance inheritance){
-        return new Line(inheritance.getStartClass().getX(), inheritance.getStartClass().getY(), inheritance.getEndClass().getX(), inheritance.getEndClass().getY());
+    private Line getJFXLineFromLine(BusinessLayer.Models.Components.ClassDiagramComponents.Line.Line line){
+        return new Line(line.getStartComp().getX(), line.getStartComp().getY(), line.getEndComp().getX(), line.getEndComp().getY());
     }
 
     private Component getClassAtPoint(Point point) {
-        System.out.println("getClassAtPoint called!");
+        //System.out.println("getClassAtPoint called!");
         for (Map.Entry<Node, Object> entry : elementMap.entrySet()) {
             Node node = entry.getKey();
             if (node instanceof VBox && isWithinBounds(node, point.getX(), point.getY())) {
                 Object element = entry.getValue();
-                if (element instanceof Class || element instanceof Interface || element instanceof TextBox) {
+                if (element instanceof Class ||
+                        element instanceof Interface ||
+                        element instanceof TextBox) {
                     return (Component) element;
                 }
             }
@@ -1369,158 +1246,150 @@ public class ClassDiagramController {
         model_name.setText("Class Diagram: " + modelName);
     }
 
-    /**
-     * <p>
-     *     by iterating through the components, the functions filters the classes,
-     *     interfaces and inheritance relations. All these relations are mapped
-     *     to generate code for classes that can extends other classes and implement
-     *     interfaces.
-     * </p>
-     * */
     public void generateCodeFunc(ActionEvent event) {
-        // Retrieve components
-        List<Component> components = classDiagram.getComponents();
-        List<Interface> interfaces = new ArrayList<>();
-        List<Class> classes = new ArrayList<>();
-        List<Inheritance> inheritances = new ArrayList<>();
-
-        // Categorize components
-        for (Component component : components) {
-            if (component instanceof Interface) {
-                interfaces.add((Interface) component);
-            } else if (component instanceof Class) {
-                classes.add((Class) component);
-            } else if (component instanceof Inheritance) {
-                inheritances.add((Inheritance) component);
-            }
-        }
-
-        // Map inheritance relationships
-        Map<Class, Class> inheritanceMap = new HashMap<>();
-        for (Inheritance inheritance : inheritances) {
-            Component startClass = inheritance.getStartClass();
-            Component endClass = inheritance.getEndClass();
-
-            if (startClass instanceof Class && endClass instanceof Class) {
-                inheritanceMap.put((Class) startClass, (Class) endClass);
-            }
-        }
-
-        // Map classes to the interfaces they implement (if needed)
-        Map<Class, List<Interface>> implementationMap = new HashMap<>();
-        for (Component component : components) {
-            if (component instanceof Association) { // Assuming `Association` represents implementation
-                Association association = (Association) component;
-                if (association.getStartClass() instanceof Class && association.getEndClass() instanceof Interface) {
-                    Class startClass = (Class) association.getStartClass();
-                    Interface endInterface = (Interface) association.getEndClass();
-
-                    implementationMap.putIfAbsent(startClass, new ArrayList<>());
-                    implementationMap.get(startClass).add(endInterface);
-                }
-            }
-        }
-
-        // StringBuilder for generating code
-        StringBuilder codeBuilder = new StringBuilder();
-
-        // Generate code for interfaces
-        for (Interface iface : interfaces) {
-            String ifaceName = iface.getName().replace(" ", "_");
-            codeBuilder.append("public interface ").append(ifaceName).append(" {\n");
-
-            // Add functions in the interface
-            for (Function function : iface.getFunctions()) {
-                codeBuilder.append("\t")
-                        .append(function.getAccessModifier())
-                        .append(function.getReturnType()).append(" ").append(function.getName()).append("();\n");
-            }
-
-            codeBuilder.append("}\n\n");
-        }
-
-        // Generate code for classes
-        for (Class cls : classes) {
-            String className = cls.getName().replace(" ", "_");
-            codeBuilder.append("public class ").append(className);
-
-            // Check inheritance
-            if (inheritanceMap.containsKey(cls)) {
-                codeBuilder.append(" extends ").append(inheritanceMap.get(cls).getName().replace(" ", "_"));
-            }
-
-            // Check implemented interfaces
-            if (implementationMap.containsKey(cls)) {
-                List<Interface> implementedInterfaces = implementationMap.get(cls);
-                if (!implementedInterfaces.isEmpty()) {
-                    codeBuilder.append(" implements ");
-                    for (int i = 0; i < implementedInterfaces.size(); i++) {
-                        codeBuilder.append(implementedInterfaces.get(i).getName().replace(" ", "_"));
-                        if (i < implementedInterfaces.size() - 1) {
-                            codeBuilder.append(", ");
-                        }
-                    }
-                }
-            }
-
-            codeBuilder.append(" {\n");
-
-            // Add attributes
-            for (Attribute attribute : cls.getAttributes()) {
-                codeBuilder.append("\t")
-                        .append(attribute.getAccessModifier()).append(" ")
-                        .append(attribute.getDataType()).append(" ")
-                        .append(attribute.getName()).append(";\n");
-            }
-
-            // Add functions
-            for (Function function : cls.getFunctions()) {
-                codeBuilder.append("\n\t")
-                        .append(function.getAccessModifier())
-                        .append(function.getReturnType()).append(" ")
-                        .append(function.getName()).append("(");
-
-                // Add function parameters
-                List<Attribute> parameters = function.getAttributes();
-                for (int i = 0; i < parameters.size(); i++) {
-                    Attribute param = parameters.get(i);
-                    codeBuilder.append(param.getDataType()).append(" ").append(param.getName());
-                    if (i < parameters.size() - 1) {
-                        codeBuilder.append(", ");
-                    }
-                }
-
-                codeBuilder.append(") {\n\t\t// TODO: Implement function\n\t}\n");
-            }
-
-            codeBuilder.append("}\n\n");
-        }
-
-        // Write the generated code to a file
-        try {
-            File file = new File("GeneratedCode.java");
-            FileWriter writer = new FileWriter(file);
-            writer.write(codeBuilder.toString());
-            writer.close();
-            LOGGER.info("Code successfully written to GeneratedCode.java");
-
-            Alert alert = new Alert(Alert.AlertType.INFORMATION);
-
-            alert.setTitle("Success");
-            alert.setHeaderText(null);
-            alert.setContentText("Code successfully written to GeneratedCode.java");
-
-            alert.showAndWait();
-        } catch (IOException e) {
-            LOGGER.log(Level.SEVERE, "Code could not be written to GeneratedCode.java", e);
-            Alert alert = new Alert(Alert.AlertType.INFORMATION);
-
-            alert.setTitle("Error");
-            alert.setHeaderText(null);
-            alert.setContentText("Code could not be written to GeneratedCode.java");
-
-            alert.showAndWait();
-        }
+//        // Retrieve components
+//        List<Component> components = classDiagram.getComponents();
+//        List<Interface> interfaces = new ArrayList<>();
+//        List<Class> classes = new ArrayList<>();
+//        List<Inheritance> inheritances = new ArrayList<>();
+//
+//        // Categorize components
+//        for (Component component : components) {
+//            if (component instanceof Interface) {
+//                interfaces.add((Interface) component);
+//            } else if (component instanceof Class) {
+//                classes.add((Class) component);
+//            } else if (component instanceof Inheritance) {
+//                inheritances.add((Inheritance) component);
+//            }
+//        }
+//
+//        // Map inheritance relationships
+//        Map<Class, Class> inheritanceMap = new HashMap<>();
+//        for (Inheritance inheritance : inheritances) {
+//            Component startClass = inheritance.getStartClass();
+//            Component endClass = inheritance.getEndClass();
+//
+//            if (startClass instanceof Class && endClass instanceof Class) {
+//                inheritanceMap.put((Class) startClass, (Class) endClass);
+//            }
+//        }
+//
+//        // Map classes to the interfaces they implement (if needed)
+//        Map<Class, List<Interface>> implementationMap = new HashMap<>();
+//        for (Component component : components) {
+//            if (component instanceof Association) { // Assuming `Association` represents implementation
+//                Association association = (Association) component;
+//                if (association.getStartClass() instanceof Class && association.getEndClass() instanceof Interface) {
+//                    Class startClass = (Class) association.getStartClass();
+//                    Interface endInterface = (Interface) association.getEndClass();
+//
+//                    implementationMap.putIfAbsent(startClass, new ArrayList<>());
+//                    implementationMap.get(startClass).add(endInterface);
+//                }
+//            }
+//        }
+//
+//        // StringBuilder for generating code
+//        StringBuilder codeBuilder = new StringBuilder();
+//
+//        // Generate code for interfaces
+//        for (Interface iface : interfaces) {
+//            String ifaceName = iface.getName().replace(" ", "_");
+//            codeBuilder.append("public interface ").append(ifaceName).append(" {\n");
+//
+//            // Add functions in the interface
+//            for (Function function : iface.getFunctions()) {
+//                codeBuilder.append("\t")
+//                        .append(function.getAccessModifier())
+//                        .append(function.getReturnType()).append(" ").append(function.getName()).append("();\n");
+//            }
+//
+//            codeBuilder.append("}\n\n");
+//        }
+//
+//        // Generate code for classes
+//        for (Class cls : classes) {
+//            String className = cls.getName().replace(" ", "_");
+//            codeBuilder.append("public class ").append(className);
+//
+//            // Check inheritance
+//            if (inheritanceMap.containsKey(cls)) {
+//                codeBuilder.append(" extends ").append(inheritanceMap.get(cls).getName().replace(" ", "_"));
+//            }
+//
+//            // Check implemented interfaces
+//            if (implementationMap.containsKey(cls)) {
+//                List<Interface> implementedInterfaces = implementationMap.get(cls);
+//                if (!implementedInterfaces.isEmpty()) {
+//                    codeBuilder.append(" implements ");
+//                    for (int i = 0; i < implementedInterfaces.size(); i++) {
+//                        codeBuilder.append(implementedInterfaces.get(i).getName().replace(" ", "_"));
+//                        if (i < implementedInterfaces.size() - 1) {
+//                            codeBuilder.append(", ");
+//                        }
+//                    }
+//                }
+//            }
+//
+//            codeBuilder.append(" {\n");
+//
+//            // Add attributes
+//            for (Attribute attribute : cls.getAttributes()) {
+//                codeBuilder.append("\t")
+//                        .append(attribute.getAccessModifier()).append(" ")
+//                        .append(attribute.getDataType()).append(" ")
+//                        .append(attribute.getName()).append(";\n");
+//            }
+//
+//            // Add functions
+//            for (Function function : cls.getFunctions()) {
+//                codeBuilder.append("\n\t")
+//                        .append(function.getAccessModifier())
+//                        .append(function.getReturnType()).append(" ")
+//                        .append(function.getName()).append("(");
+//
+//                // Add function parameters
+//                List<Attribute> parameters = function.getAttributes();
+//                for (int i = 0; i < parameters.size(); i++) {
+//                    Attribute param = parameters.get(i);
+//                    codeBuilder.append(param.getDataType()).append(" ").append(param.getName());
+//                    if (i < parameters.size() - 1) {
+//                        codeBuilder.append(", ");
+//                    }
+//                }
+//
+//                codeBuilder.append(") {\n\t\t// TODO: Implement function\n\t}\n");
+//            }
+//
+//            codeBuilder.append("}\n\n");
+//        }
+//
+//        // Write the generated code to a file
+//        try {
+//            File file = new File("GeneratedCode.java");
+//            FileWriter writer = new FileWriter(file);
+//            writer.write(codeBuilder.toString());
+//            writer.close();
+//            LOGGER.info("Code successfully written to GeneratedCode.java");
+//
+//            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+//
+//            alert.setTitle("Success");
+//            alert.setHeaderText(null);
+//            alert.setContentText("Code successfully written to GeneratedCode.java");
+//
+//            alert.showAndWait();
+//        } catch (IOException e) {
+//            LOGGER.log(Level.SEVERE, "Code could not be written to GeneratedCode.java", e);
+//            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+//
+//            alert.setTitle("Error");
+//            alert.setHeaderText(null);
+//            alert.setContentText("Code could not be written to GeneratedCode.java");
+//
+//            alert.showAndWait();
+//        }
     }
 
 

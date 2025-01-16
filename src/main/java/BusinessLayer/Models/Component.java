@@ -2,9 +2,7 @@ package BusinessLayer.Models;
 
 public abstract class Component {
     private int id;
-
     private String name;
-
     private Point initialPoint;
 
     public Component(int id, double x, double y) {

@@ -1,6 +1,7 @@
-package BusinessLayer.Models.Components.ClassDiagramComponents;
+package BusinessLayer.Models.Components.ClassDiagramComponents.Line;
 import BusinessLayer.Models.Component;
 import java.io.Serializable;
+import java.util.Objects;
 
 public class Line extends Component implements Serializable {
     private Multiplicity startMultiplicity;
@@ -21,10 +22,16 @@ public class Line extends Component implements Serializable {
 
     public Line(int id, double x, double y, LineType type, Component startComp, Component endComp){
         super(id, x, y);
-        super.setName(type.getType() + id);
+        if(Objects.equals(type.getType(), "DashedLine")){
+            super.setName("");
+            this.startMultiplicity = new Multiplicity("", "");
+            this.endMultiplicity = new Multiplicity("", "");
+        } else {
+            super.setName(type.getType() + id);
+            this.startMultiplicity = new Multiplicity("1", "1");
+            this.endMultiplicity = new Multiplicity("1", "1");
+        }
 
-        this.startMultiplicity = new Multiplicity("1", "1");
-        this.endMultiplicity = new Multiplicity("1", "1");
         this.type = type;
         this.startComp = startComp;
         this.endComp = endComp;

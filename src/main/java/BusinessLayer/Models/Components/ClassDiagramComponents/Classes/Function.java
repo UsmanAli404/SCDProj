@@ -1,4 +1,4 @@
-package BusinessLayer.Models.Components.ClassDiagramComponents;
+package BusinessLayer.Models.Components.ClassDiagramComponents.Classes;
 
 import java.io.Serializable;
 import java.util.ArrayList;

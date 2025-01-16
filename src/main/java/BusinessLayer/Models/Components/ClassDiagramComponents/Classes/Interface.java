@@ -1,4 +1,4 @@
-package BusinessLayer.Models.Components.ClassDiagramComponents;
+package BusinessLayer.Models.Components.ClassDiagramComponents.Classes;
 
 import BusinessLayer.Models.Component;
 import BusinessLayer.Models.Point;

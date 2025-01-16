@@ -2,13 +2,14 @@ package BusinessLayer.Models.Diagrams;
 
 import BusinessLayer.Models.Component;
 import BusinessLayer.Models.Components.ClassDiagramComponents.*;
-import BusinessLayer.Models.Components.ClassDiagramComponents.Class;
+import BusinessLayer.Models.Components.ClassDiagramComponents.Classes.Class;
+import BusinessLayer.Models.Components.ClassDiagramComponents.Classes.Interface;
+import BusinessLayer.Models.Components.ClassDiagramComponents.Line.Line;
 import BusinessLayer.Models.Model;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Objects;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -45,33 +46,7 @@ public class ClassDiagram implements Model, Serializable {
 
     @Override
     public boolean removeComponent(Component c) {
-        ArrayList<String> removedComponents = new ArrayList<>();
-        if (c == null) {
-            LOGGER.warning("Cannot remove component: Provided component is null.");
-            return false;
-        }
-
-        try {
-            int index = findComponentByID(c.getId());
-            if (index != -1) {//component found
-                Component component = components.get(index);
-                removedComponents.add(component.getName()+" ("+component.getId()+")");
-                System.out.println("removing component with id: "+component.getId());
-                //first delete all associations
-                if (component instanceof Class || component instanceof Interface) {
-                    removeAssociations(component, removedComponents);
-                }
-
-                components.remove(index);
-
-                //check for associations
-                return true;
-            }
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Failed to remove component with ID: " + c.getId(), e);
-            throw new RuntimeException(e);
-        }
-        return false;
+        return !removeComponentByID(c.getId()).isEmpty();
     }
 
     public ArrayList<String> removeComponentByID(int id){
@@ -82,29 +57,14 @@ public class ClassDiagram implements Model, Serializable {
             removedComponents.add(component.getName()+" ("+component.getId()+")");
             System.out.println("removing component with id: "+component.getId());
             //first delete all associations
-            if(component instanceof Class || component instanceof Interface){
-                removeAssociations(component, removedComponents);
-                removeAggregations(component, removedComponents);
-                removeCompositions(component, removedComponents);
-                removeInheritances(component, removedComponents);
-                removeDashedLines(component, removedComponents);
-            } else if(component instanceof TextBox){
-                removeDashedLines(component, removedComponents);
+            if(component instanceof Class || component instanceof Interface || component instanceof TextBox){
+                removeAssociatedLines(component, removedComponents);
             }
 
             components.remove(index);
             System.out.println("component removed with id: "+id);
         }
         return removedComponents;
-    }
-
-    public String getComponentNameForGivenId(int id){
-        for(int i=0; i<components.size(); i++){
-            if(components.get(i).getId()==id){
-                return components.get(i).getName();
-            }
-        }
-        return "";
     }
 
     public void printArr(){
@@ -115,15 +75,15 @@ public class ClassDiagram implements Model, Serializable {
         System.out.println("-----------------------------------------------");
     }
 
-    public void removeAssociations(Component myClass, ArrayList<String> removedComponents){
-        ArrayList<Association> remove_indexes = new ArrayList<>();
+    public void removeAssociatedLines(Component component, ArrayList<String> removedComponents){
+        ArrayList<Line> remove_indexes = new ArrayList<>();
         for(int i=0; i<components.size(); i++){
             Component c = components.get(i);
-            if(c instanceof Association association){
-                if(association.getStartClass()==myClass || association.getEndClass()==myClass){
-                    System.out.println("removing association with id: "+c.getId());
-                    remove_indexes.add((Association) c);
-                    removedComponents.add(association.getName()+" ("+association.getId()+")");
+            if(c instanceof Line line){
+                if(line.getStartComp()==component || line.getEndComp()==component){
+                    //System.out.println("removing association with id: "+c.getId());
+                    remove_indexes.add((Line) c);
+                    removedComponents.add(line.getName()+" ("+line.getId()+")");
                 }
             }
         }
@@ -131,83 +91,7 @@ public class ClassDiagram implements Model, Serializable {
         for(int i=0; i<remove_indexes.size(); i++){
             components.remove(remove_indexes.get(i));
         }
-        System.out.println("association removed!");
-    }
-
-    public void removeAggregations(Component myClass, ArrayList<String> removedComponents){
-        ArrayList<Aggregation> remove_indexes = new ArrayList<>();
-        for(int i=0; i<components.size(); i++){
-            Component c = components.get(i);
-            if(c instanceof Aggregation aggregation){
-                if(aggregation.getStartClass()==myClass || aggregation.getEndClass()==myClass){
-                    System.out.println("removing aggregation with id: "+c.getId());
-                    remove_indexes.add((Aggregation) c);
-                    removedComponents.add(aggregation.getName()+" ("+aggregation.getId()+")");
-                }
-            }
-        }
-
-        for(int i=0; i<remove_indexes.size(); i++){
-            components.remove(remove_indexes.get(i));
-        }
-        System.out.println("aggregation removed!");
-    }
-
-    public void removeCompositions(Component myClass, ArrayList<String> removedComponents){
-        ArrayList<Composition> remove_indexes = new ArrayList<>();
-        for(int i=0; i<components.size(); i++){
-            Component c = components.get(i);
-            if(c instanceof Composition composition){
-                if(composition.getStartClass()==myClass || composition.getEndClass()==myClass){
-                    System.out.println("removing composition with id: "+c.getId());
-                    remove_indexes.add((Composition) c);
-                    removedComponents.add(composition.getName()+" ("+composition.getId()+")");
-                }
-            }
-        }
-
-        for(int i=0; i<remove_indexes.size(); i++){
-            components.remove(remove_indexes.get(i));
-        }
-        System.out.println("Composition removed!");
-    }
-
-    public void removeInheritances(Component myClass, ArrayList<String> removedComponents){
-        ArrayList<Inheritance> remove_indexes = new ArrayList<>();
-        for(int i=0; i<components.size(); i++){
-            Component c = components.get(i);
-            if(c instanceof Inheritance inheritance){
-                if(inheritance.getStartClass()==myClass || inheritance.getEndClass()==myClass){
-                    System.out.println("removing inheritance with id: "+c.getId());
-                    remove_indexes.add((Inheritance) c);
-                    removedComponents.add(inheritance.getName()+" ("+inheritance.getId()+")");
-                }
-            }
-        }
-
-        for(int i=0; i<remove_indexes.size(); i++){
-            components.remove(remove_indexes.get(i));
-        }
-        System.out.println("Inheritance removed!");
-    }
-
-    public void removeDashedLines(Component textBox, ArrayList<String> removedComponents){
-        ArrayList<DashedLine> remove_indexes = new ArrayList<>();
-        for(int i=0; i<components.size(); i++){
-            Component c = components.get(i);
-            if(c instanceof DashedLine dashedLine){
-                if(dashedLine.getStartClass()==textBox || dashedLine.getEndClass()==textBox){
-                    System.out.println("removing dashed line with id: "+c.getId());
-                    remove_indexes.add((DashedLine) c);
-                    removedComponents.add(dashedLine.getName()+" ("+dashedLine.getId()+")");
-                }
-            }
-        }
-
-        for(int i=0; i<remove_indexes.size(); i++){
-            components.remove(remove_indexes.get(i));
-        }
-        System.out.println("dashed line removed!");
+        //System.out.println("line removed!");
     }
 
     @Override

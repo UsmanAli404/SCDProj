@@ -1,9 +1,9 @@
 package BusinessLayer.Models.Diagrams;
 
 import BusinessLayer.Models.Component;
-import BusinessLayer.Models.Components.ClassDiagramComponents.Association;
-import BusinessLayer.Models.Components.ClassDiagramComponents.Class;
-import BusinessLayer.Models.Components.ClassDiagramComponents.Interface;
+import BusinessLayer.Models.Components.UseCaseDiagramComponents.Association;
+import BusinessLayer.Models.Components.ClassDiagramComponents.Classes.Class;
+import BusinessLayer.Models.Components.ClassDiagramComponents.Classes.Interface;
 import BusinessLayer.Models.Components.UseCaseDiagramComponents.UseCase;
 import BusinessLayer.Models.Components.UseCaseDiagramComponents.UseCaseActor;
 import BusinessLayer.Models.Model;

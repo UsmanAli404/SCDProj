@@ -1,22 +1,22 @@
-package BusinessLayer.Models.Components.ClassDiagramComponents;
+package BusinessLayer.Models.Components.UseCaseDiagramComponents;
 
 import BusinessLayer.Models.Component;
+import BusinessLayer.Models.Components.ClassDiagramComponents.Classes.Class;
 import javafx.scene.shape.Line;
 
 import java.io.Serializable;
 
 /**
- * Represents an inheritance component in a class diagram.
+ * Represents an association component in a class diagram.
  *
  * <p>
- * An inheritance is a relationship between two classes where one class (the subclass)
- * inherits the properties and behaviors of another class (the superclass). It is visualized
- * as a line connecting the two classes, typically with multiplicity markers at both ends.
- * In a class diagram, the inheritance relationship is usually represented by a solid line
- * with an arrowhead pointing from the subclass to the superclass.
+ * An association is a relationship between two classes in a class diagram, where one class
+ * is associated with another. This relationship is typically visualized as a line connecting
+ * the two classes, with multiplicity markers at both ends to indicate how many instances
+ * of one class can be associated with instances of another class.
  * </p>
  */
-public class Inheritance extends Component implements Serializable {
+public class Association extends Component implements Serializable {
     private String startInitialMultiplicity="";
     private String startEndMultiplicity="";
     private String endStartMultiplicity="";
@@ -26,25 +26,25 @@ public class Inheritance extends Component implements Serializable {
     //private Line line;
 
     /**
-     * Initializes an Inheritance object with specified classes and position.
+     * Initializes an Association object with specified start and end classes and their positions.
      *
      * @param id           Component ID, use ClassDiagram.getUpcomingComponentID() for safety
-     * @param x            X-coordinate for the inheritance's position
-     * @param y            Y-coordinate for the inheritance's position
-     * @param startClass   The starting class (subclass) of the inheritance
-     * @param endClass     The ending class (superclass) of the inheritance
+     * @param x            X-coordinate for the association's position
+     * @param y            Y-coordinate for the association's position
+     * @param startClass   The starting class of the association
+     * @param endClass     The ending class of the association
      */
-    public Inheritance(int id, double x, double y, Component startClass, Component endClass) {
-        super(id, x, y);
-        this.setName("Inheritance "+id);
+    public Association(int id, double x, double y, Component startClass, Component endClass) {
+        super(id, x, y); // Call the parent class constructor
+        super.setName("Association "+id);
         this.startClass = startClass;
         this.endClass = endClass;
-        //this.line = new Line();
-        //updateLine();
+//        this.line = new Line();
+//        updateLine();
     }
 
     /**
-     * Initializes an Inheritance object with specified multiplicities and line.
+     * Initializes an Association object with specified multiplicities, name, and line.
      *
      * @param id                    Component ID
      * @param x                     X-coordinate
@@ -53,13 +53,14 @@ public class Inheritance extends Component implements Serializable {
      * @param startEndMultiplicity    The end multiplicity at the start class
      * @param endStartMultiplicity   The start multiplicity at the end class
      * @param endEndMultiplicity     The end multiplicity at the end class
-     * @param startClass             The starting class (subclass) of the inheritance
-     * @param endClass               The ending class (superclass) of the inheritance
-     * @param line                   The line object representing the inheritance
+     * @param name                   The name of the association
+     * @param startClass             The starting class of the association
+     * @param endClass               The ending class of the association
+     * @param line                   The line representing the association
      */
-    public Inheritance(int id, double x, double y, String startInitialMultiplicity, String startEndMultiplicity, String endStartMultiplicity, String endEndMultiplicity, Class startClass, Class endClass, Line line) {
-        super(id, x, y);
-        this.setName("Inheritance "+id);
+    public Association(int id, int x, int y, String startInitialMultiplicity, String startEndMultiplicity, String endStartMultiplicity, String endEndMultiplicity, String name, Class startClass, Class endClass, Line line) {
+        super(id, x, y); // Call the parent class constructor
+        super.setName(name);
         this.startInitialMultiplicity = startInitialMultiplicity;
         this.startEndMultiplicity = startEndMultiplicity;
         this.endStartMultiplicity = endStartMultiplicity;
@@ -70,23 +71,22 @@ public class Inheritance extends Component implements Serializable {
     }
 
     /**
-     * Initializes an Inheritance object with a custom name and multiplicities.
+     * Initializes an Association object with specified multiplicities and line.
      *
-     * @param id                     Component ID
-     * @param x                      X-coordinate
-     * @param y                      Y-coordinate
-     * @param startInitialMultiplicity  Initial multiplicity at the start class
-     * @param startEndMultiplicity      End multiplicity at the start class
-     * @param endStartMultiplicity     Start multiplicity at the end class
-     * @param endEndMultiplicity       End multiplicity at the end class
-     * @param name                    Custom name for the inheritance
-     * @param startClass              The starting class (subclass)
-     * @param endClass                The ending class (superclass)
-     * @param line                    The line object representing the inheritance
+     * @param id                    Component ID
+     * @param x                     X-coordinate
+     * @param y                     Y-coordinate
+     * @param startInitialMultiplicity The initial multiplicity at the start class
+     * @param startEndMultiplicity    The end multiplicity at the start class
+     * @param endStartMultiplicity   The start multiplicity at the end class
+     * @param endEndMultiplicity     The end multiplicity at the end class
+     * @param startClass             The starting class of the association
+     * @param endClass               The ending class of the association
+     * @param line                   The line representing the association
      */
-    public Inheritance(int id, double x, double y, String startInitialMultiplicity, String startEndMultiplicity, String endStartMultiplicity, String endEndMultiplicity, String name, Class startClass, Class endClass, Line line) {
-        super(id, x, y);
-        this.setName(name);
+    public Association(int id, int x, int y, String startInitialMultiplicity, String startEndMultiplicity, String endStartMultiplicity, String endEndMultiplicity, Class startClass, Class endClass, Line line) {
+        super(id, x, y); // Call the parent class constructor
+        super.setName("Association "+id);
         this.startInitialMultiplicity = startInitialMultiplicity;
         this.startEndMultiplicity = startEndMultiplicity;
         this.endStartMultiplicity = endStartMultiplicity;
@@ -97,8 +97,7 @@ public class Inheritance extends Component implements Serializable {
     }
 
     /**
-     * Updates the line representing the inheritance, adjusting the start and end points
-     * based on the positions of the start and end classes.
+     * Updates the line's coordinates based on the start and end classes' positions.
      */
 //    public void updateLine() {
 //        if (startClass != null && endClass != null) {
@@ -109,8 +108,14 @@ public class Inheritance extends Component implements Serializable {
 //        }
 //    }
 
+    // Getters and setters
+
     public Component getStartClass() {
         return startClass;
+    }
+
+    public void setStartClass(Class startClass) {
+        this.startClass = startClass;
     }
 
     public Component getEndClass() {
@@ -119,10 +124,6 @@ public class Inheritance extends Component implements Serializable {
 
     public void setEndClass(Class endClass) {
         this.endClass = endClass;
-    }
-
-    public void setStartClass(Class startClass) {
-        this.startClass = startClass;
     }
 
 //    public Line getLine() {

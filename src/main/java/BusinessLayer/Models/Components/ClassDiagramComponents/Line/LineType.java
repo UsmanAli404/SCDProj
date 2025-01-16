@@ -1,4 +1,4 @@
-package BusinessLayer.Models.Components.ClassDiagramComponents;
+package BusinessLayer.Models.Components.ClassDiagramComponents.Line;
 
 public enum LineType {
     ASSOCIATION("Association"),

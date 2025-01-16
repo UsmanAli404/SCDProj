@@ -19,4 +19,6 @@ module org.example.scdproj {
     // Exported to all modules
 
     exports App;
+    exports BusinessLayer.Models.Components.ClassDiagramComponents.Line;
+    exports BusinessLayer.Models.Components.ClassDiagramComponents.Classes;
 }
